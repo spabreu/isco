@@ -147,8 +147,11 @@ isco_sql_extra_stuff(_, _).
 % -----------------------------------------------------------------------------
 
 % $Log$
-% Revision 1.1  2003/01/06 14:27:18  spa
-% Initial revision
+% Revision 1.1  2003/01/06 15:15:01  spa
+% *** empty log message ***
+%
+% Revision 1.1.1.1  2003/01/06 14:27:18  spa
+% Imported into CVS
 %
 % Revision 1.11  2001/10/14 07:31:27  spa
 % properly include commas after "classe" field.

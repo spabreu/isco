@@ -25,7 +25,7 @@
 SHELL = /bin/bash
 
 GPLC = @GPLC@
-PROLOG = @GPROLOG@
+PROLOG = gprolog-cx
 INSTALL = @INSTALL@
 
 PROG = isco
@@ -37,20 +37,23 @@ PROGSHELL = $(PROG)-shell
 PREFIX = @prefix@
 LIBDIR = $(PREFIX)/lib/$(PROG)
 
-PLX = $(PREFIX)/$(PROLOG)/ext
+PLX = $(PREFIX)/lib/$(PROLOG)/ext
 
 PLFILES = \
 	revision.pl \
 	apt.pl \
 	cmdline.pl \
-	code-gen-directives.pl \
-	code-gen-schema.pl \
-	code-gen-prolog.pl \
-	code-gen-sql.pl \
 	empty-classes.pl \
 	ops.pl \
 	parser.pl \
-	runtime.pl \
+	runtime/runtime.pl \
+	runtime/backend.pl \
+	runtime/backend-pg.pl \
+	runtime/backend-odbc.pl \
+	back-end/code-gen-directives.o \
+	back-end/prolog.o \
+	back-end/sql.o \
+	back-end/sql-schema.o \
 	symtab.pl \
 	top-level.pl \
 	ctype.pl \
@@ -63,15 +66,18 @@ ISCOC_OBJECTS = \
 	top-level.o \
 	apt.o \
 	parser.o \
-	runtime.o \
+	runtime/runtime.o \
+	runtime/backend.o \
+	runtime/backend-pg.o \
+	runtime/backend-odbc.o \
 	symtab.o \
 	ctype.o \
 	empty-classes.o \
 	cmdline.o \
-	code-gen-directives.o \
-	code-gen-schema.o \
-	code-gen-prolog.o \
-	code-gen-sql.o \
+	back-end/code-gen-directives.o \
+	back-end/prolog.o \
+	back-end/sql.o \
+	back-end/sql-schema.o \
 	isco_lib_dir.o
 
 
@@ -86,11 +92,11 @@ SHELL_OBJECTS = \
 	isco_lib_dir.o
 
 LIB_OBJECTS = \
-	runtime.o \
 	ctype.o \
 	ops.pl \
-	backend-pg.o \
-	backend-odbc.o
+	runtime/runtime.o \
+	runtime/backend-pg.o \
+	runtime/backend-odbc.o
 
 OBJECTS = \
 	$(ISCOC_OBJECTS) $(SHELL_OBJECTS) $(PHP_OBJECTS) $(LIB_OBJECTS)
@@ -168,8 +174,11 @@ revision.pl: revision.pl.in
 
 
 # $Log$
-# Revision 1.1  2003/01/06 14:27:16  spa
-# Initial revision
+# Revision 1.2  2003/01/06 15:15:01  spa
+# *** empty log message ***
+#
+# Revision 1.1.1.1  2003/01/06 14:27:16  spa
+# Imported into CVS
 #
 
 # Local variables:

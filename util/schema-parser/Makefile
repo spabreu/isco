@@ -86,8 +86,11 @@ clean:
 	find -name \*~ -o -name \#* | xargs rm -f
 
 # $Log$
-# Revision 1.1  2003/01/06 14:27:12  spa
-# Initial revision
+# Revision 1.2  2003/01/06 15:15:01  spa
+# *** empty log message ***
+#
+# Revision 1.1.1.1  2003/01/06 14:27:13  spa
+# Imported into CVS
 #
 # Revision 1.1.1.1  2002/11/23 01:50:02  spa
 # Created module

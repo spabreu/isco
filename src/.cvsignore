@@ -1,3 +1,4 @@
 Makefile
+isco_lib_dir.pl
 revision.pl
 *.o

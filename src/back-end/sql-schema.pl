@@ -223,8 +223,11 @@ isco_schema_pattern(index, CNAME, f(_,FNAME,_,ATTRs),
 % -----------------------------------------------------------------------------
 
 % $Log$
-% Revision 1.1  2003/01/06 14:27:18  spa
-% Initial revision
+% Revision 1.1  2003/01/06 15:15:01  spa
+% *** empty log message ***
+%
+% Revision 1.1.1.1  2003/01/06 14:27:18  spa
+% Imported into CVS
 %
 % Revision 1.17  2001/08/24 18:15:34  spa
 % Take note of "index" attributes (class and field).
