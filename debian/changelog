@@ -1,3 +1,9 @@
+isco (2.3-5) unstable; urgency=low
+
+  * allow host:db syntax for isco default database.
+
+ -- Salvador Abreu <spa@debian.org>  Sun, 15 Jun 2003 00:42:02 +0100
+
 isco (2.3-4) unstable; urgency=low
 
   * back-end/sql-build.pl: transmit "comma" to various predicates, to

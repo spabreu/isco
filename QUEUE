@@ -1,14 +1,16 @@
 TODO:
 
-- delete: transmit remaining args to caller... (mimic select?)
-- update: take care of oid= and instanceOf=
-- update: runtime interface
+- "-u" flag to create a unit for each class.
 
 DONE:
 
+- delete: transmit remaining args to caller... (mimic select?)
+- update: take care of oid= and instanceOf=
 - lookup: take care of oid= and instanceOf=
 - insert: take care of oid= and instanceOf=
 - insert: pick up appropriate default when using inheritance
 - insert: runtime interface
 - delete: runtime interface
 - delete: take care of oid= and instanceOf=
+- update: runtime interface
+[2.3-5] - internal (default) db: allow host/username to be specified
