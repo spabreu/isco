@@ -1,3 +1,10 @@
+isco (2.0-0.3) unstable; urgency=low
+
+  * Fixed to work with latest postgresql.
+  * isco_odbc_format/3 must be back...
+
+ -- Salvador Abreu <spa@debian.org>  Fri, 17 Jan 2003 14:47:49 +0000
+
 isco (2.0-0.2) unstable; urgency=low
 
   * now under CVS
