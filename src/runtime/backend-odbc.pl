@@ -28,7 +28,13 @@
 
 exec(Q, R) :- odbc_alloc_stmt(C, R), odbc_exec_direct(R, Q).
 fetch(R) :- odbc_fetch(R).
-%%DBG get_data(R, X, T, V) :- write(odbc(C):>get_data(R, X, T, V)), nl, fail. %%DBG
+%%DBG get_data(R, X, T, V) :- writeq(odbc(C):>get_data(R, X, T, V)), nl, fail.
+get_data(R, X, term, V) :-
+	!,
+	pq_get_data_codes(R, X, VS),
+	catch( ( read_term_from_codes(VS, V,
+				      [syntax_error(fail), end_of_term(eof)])
+	       -> true ; V=[] ), _, V=[]).
 get_data(R, X, T, V) :- odbc_get_data(R, X, T, V).
 
 ntuples(R, N) :- odbc_row_count(R, N).
@@ -36,6 +42,10 @@ oid(_, 0) :- format('[warning: OID implicitly used with ODBC!]\n', []).
 
 
 % $Log$
+% Revision 1.4  2003/09/23 12:28:21  spa
+% WIP: update for computed classes.
+% fix term type: should not create atoms!
+%
 % Revision 1.3  2003/03/16 09:21:45  spa
 % Debug code out.
 %

@@ -97,7 +97,7 @@ isco_apt_name(class(NAME, ATTRs, SUPERs, DEFs), ST) :-
 	insert(NET, atrib=ATTRs),
 	insert(NET, fields=FIELDs),
 	insert(NET, rules=_RULEs),
-	insert(NET, gunit=GUNIT),
+	insert(NET, gunit=_GUNIT),		% defining unit name
 	isco_apt_field_defs(DEFs, NAME, NET, ST),
 	isco_apt_default_fields(SUPERs, FIELDs, NAME, ST),
 	isco_apt_name_defs(DEFs, NAME, NET, ST).
@@ -235,8 +235,8 @@ isco_apt_rule_list([R|Rs], NAME, NET, ST) :-
 
 isco_apt_rule(NAME, rule(TYPE, BODY, VARs), NET, ST) :-
 	isco_field_vars(NET, FVARs),
-	isco_merge_vars(VARs, FVARs),
-	isco_rule_head(NAME, FVARs, NHEAD),
+	isco_rule_head(TYPE, NAME, FVARs, RVARs, NHEAD),
+	isco_merge_vars(VARs, RVARs, TYPE),	% use modded vars
 	isco_rule_body(BODY, ST, NBODY),
 	lookup(NET, prules, prules=RT),
 	insert(RT, rule(TYPE, NHEAD, NBODY)).
@@ -255,14 +255,47 @@ isco_special([directive(IDIR, ODIR)|Ds], ST) :-
 
 
 % -- Process the head (create term with bound parameters) ---------------------
+%
+% The point is to link:
+%  RVARs (Variables occurring in the rule)
+%  VARs (Variables from the class definition)
+% between themselves and to subterms of the clause head (HEAD)
 
-isco_rule_head(PRED, VARs, HEAD) :-
+isco_rule_head(update, PRED, VARs, RVARs, HEAD) :-
+	!,
+	isco_mung_var_list(VARs, 'N', NVARs, []), % create "New" names
+	isco_mung_var_list(VARs, 'O', RVARs, NVARs), % create "Old" names
 	isco_var_list(VARs, VL),
 	HEAD =.. [PRED | VL].
+isco_rule_head(_, PRED, VARs, VARs, HEAD) :-
+	isco_var_list(VARs, VL, []),
+	HEAD =.. [PRED | VL].
 
-isco_var_list(Vs, []) :- var(Vs), !.
-isco_var_list([], []) :- !.
-isco_var_list([_=V|Vs], [V|LO]) :- isco_var_list(Vs, LO).
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+isco_var_list(Vs, L) :- isco_var_list(Vs, L, []).
+
+isco_var_list(Vs, L, L) :- var(Vs), !.
+isco_var_list([], L, L) :- !.
+isco_var_list([_=V|Vs], [V|LO], LI) :- isco_var_list(Vs, LO, LI).
+
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+% isco_mung_var_list(VLIST, PFX, OVPs, IVPs, OPs, IPs)
+%
+%  VLIST -> list of NAME=VAR
+%  PFX -> atom to prepend to NAMEs
+%  OVPs/IVPs -> output/input NAME=VAR pairs
+%  OPs/IPs -> output/input OLDVAR=NEWVAR pairs: links variables in VLIST to
+%   variables in OVPs
+
+isco_mung_var_list(VLIST, PFX, OVPs, IVPs) :-
+	isco_mung_var_list(VLIST, PFX, OVPs, IVPs, _, []).
+
+isco_mung_var_list([], _, V, V, P, P).
+isco_mung_var_list([VN=V|VNVs], PFX, [NVN=NV|NVNVs], IVNVs, [V=NV|Ps], IPs) :-
+	atom_concat(PFX, VN, NVN),
+	isco_mung_var_list(VNVs, PFX, NVNVs, IVNVs, Ps, IPs).
 
 % -- Process the body (locate the calls, take care of variables) --------------
 
@@ -334,12 +367,13 @@ isco_field_var_list([f(_,Vn,_T,_A)|Fs], LI, LO) :-
 
 % -- Merge the field and rule variables ---------------------------------------
 
-isco_merge_vars([], _) :- !.
-isco_merge_vars([N=V|FVs], Vs) :-
-	lookup(Vs, N, N=V), !,
-	isco_merge_vars(FVs, Vs).
-isco_merge_vars([_N=_V|FVs], Vs) :-
-	isco_merge_vars(FVs, Vs).
+isco_merge_vars([], _, _) :- !.
+%isco_merge_vars([N=V|CVs], FVs, update) :-	% no need for special action?
+isco_merge_vars([N=V|CVs], FVs, TYPE) :-	% any type (other than update)
+	lookup(FVs, N, N=V), !,
+	isco_merge_vars(CVs, FVs, TYPE).
+isco_merge_vars([_N=_V|CVs], FVs, TYPE) :-
+	isco_merge_vars(CVs, FVs, TYPE).
 
 % -- Rewrite a call to an ISCO predicate --------------------------------------
 %

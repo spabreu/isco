@@ -29,19 +29,24 @@
 exec(Q, R) :- pq_exec(C, Q, R).
 fetch(_).
 
-%%DBG get_data(R,X,T,V) :- write(get_data(R,X,T,V)), nl, fail.
+%%DBG get_data(R,X,T,V) :- writeq(pg(C):>get_data(R,X,T,V)), nl, fail.
 get_data(R, X, term, V) :-
 	!,
 	pq_get_data_codes(R, X, VS),
+%%DBG 	format("%% DEBUG: ~w -> ~w.\n", [get_data(R,X,term,V), pq_get_data_codes(R,X,VS)]),
 	catch( ( read_term_from_codes(VS, V,
 				      [syntax_error(fail), end_of_term(eof)])
-	       ; V='' ), _, V='').
+	       -> true ; V=[] ), _, V=[]).
 get_data(R, X, T, V) :- pq_get_data(R, X, T, V).
 
 ntuples(R, N) :- pq_ntuples(R, N).
 oid(_R, O) :- pq_last_oid(C, O).
 
 % $Log$
+% Revision 1.5  2003/09/23 12:28:22  spa
+% WIP: update for computed classes.
+% fix term type: should not create atoms!
+%
 % Revision 1.4  2003/03/12 19:02:37  spa
 % *** empty log message ***
 %

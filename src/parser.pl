@@ -234,6 +234,9 @@ isco_rules(_C, [rule(insert, BODY, VARIABLES)|DEFs], FDEFs) -->
 isco_rules(_C, [rule(delete, BODY, VARIABLES)|DEFs], FDEFs) -->
 	[ (rule :\ :- BODY) / VARIABLES ], !,
 	isco_rules(_C, DEFs, FDEFs).
+isco_rules(_C, [rule(update, BODY, VARIABLES)|DEFs], FDEFs) -->
+	[ (rule @:= :- BODY) / VARIABLES ], !,
+	isco_rules(_C, DEFs, FDEFs).
 isco_rules(_C, DEFs, DEFs) --> [].
 
 % -- Utilities ----------------------------------------------------------------
@@ -258,6 +261,10 @@ type(X) :- var(X), !.
 type(X) :- format("illegal ISCO type: ~w~n", [X]).
 
 % $Log$
+% Revision 1.4  2003/09/23 12:28:21  spa
+% WIP: update for computed classes.
+% fix term type: should not create atoms!
+%
 % Revision 1.3  2003/04/15 15:03:31  spa
 % - rules now have a type (select, delete, insert)
 %

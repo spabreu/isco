@@ -714,7 +714,7 @@ isco_prolog_sequence(NAME, ATTRs) :-
 	format_to_codes(Q_C, 'select currval(''~w'')', [SNAME]),
 	BODY_C = (isco_be_exec(HC_C, Q_C, HC_S),
 		  isco_be_fetch(HC_C, HC_S),
-		  isco_be_get_data(HC_C, HC_S, 1, TYPE, HC_V)),
+		  isco_be_get_data(HC_C, HC_S, 1, TYPE, HC_V, integer)),
 	BODY_C0 = (isco_connection(DBREF, HC_C),
 		   HEAD_C),
 	nl,
@@ -726,7 +726,7 @@ isco_prolog_sequence(NAME, ATTRs) :-
 	format_to_codes(Q_N, 'select nextval(''~w'')', [SNAME]),
 	BODY_N = (isco_be_exec(HN_C, Q_N, HN_N),
 		  isco_be_fetch(HN_C, HN_N),
-		  isco_be_get_data(HN_C, HN_N, 1, TYPE, HN_V)),
+		  isco_be_get_data(HN_C, HN_N, 1, TYPE, HN_V, integer)),
 	BODY_N0 = (isco_connection(DBREF, HN_C),
 		   HEAD_N),
 	nl,
@@ -736,6 +736,10 @@ isco_prolog_sequence(NAME, ATTRs) :-
 % -----------------------------------------------------------------------------
 
 % $Log$
+% Revision 1.20  2003/09/23 12:28:21  spa
+% WIP: update for computed classes.
+% fix term type: should not create atoms!
+%
 % Revision 1.19  2003/06/16 10:42:15  spa
 % Implement -d host:db syntax.
 %

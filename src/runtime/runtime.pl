@@ -214,11 +214,18 @@ isco_odbc_conv(bool, "1", true) :- !.
 isco_odbc_conv(bool, "0", false) :- !.
 
 
-isco_odbc_conv(term, [], []) :- !.
-isco_odbc_conv(term, STRING, TERM) :-
-	catch( read_term_from_atom(STRING, TERM,
-				   [syntax_error(fail), end_of_term(eof)]),
-	       _ERROR, TERM=STRING ).
+%%DBG isco_odbc_conv(term, X, Y) :-
+%%DBG 	format("%% DEBUG: ~q.\n", [isco_odbc_conv(term, X, Y)]), fail.
+% isco_odbc_conv(term, [], []) :- !.
+%  isco_odbc_conv(term, STRING, TERM) :-
+% 	atom(STRING), !,
+% 	catch( read_term_from_atom(STRING, TERM,
+% 				   [syntax_error(fail), end_of_term(eof)]),
+% 	       _ERROR, TERM=STRING ).
+% isco_odbc_conv(term, STRING, TERM) :-
+% 	read_term_from_codes(STRING, TERM,
+% 			     [syntax_error(fail), end_of_term(eof)]).
+isco_odbc_conv(term, TERM, TERM).
 
 isco_odbc_conv(text, V, V) :- !.
 isco_odbc_conv(text, XV, PV) :- atom(XV), is_string(PV), !, name(XV, PV).
@@ -490,12 +497,12 @@ isco_var_list_to_select([f(FNAME,_,_)|Fs], SPF, SELECT, SELECTo) :-
 isco_be_get_arg(MASK, _, P, CH, SH, OTn, CONV, V, T, _) :-
 	MASK =< 0,				% includes 0 and -1
 	!,
-	isco_be_get_data(CH, SH, P, OTn, Vx),
+	isco_be_get_data(CH, SH, P, OTn, Vx, T),
 	( CONV=yes -> isco_odbc_conv(T, Vx, V) ; V=Vx ).
 isco_be_get_arg(_, N, _, CH, SH, OTn, CONV, V, T, VL) :-
 	memberchk(f(N,PX,_), VL),
 	!,
-	isco_be_get_data(CH, SH, PX, OTn, Vx),
+	isco_be_get_data(CH, SH, PX, OTn, Vx, T),
 	( CONV=yes -> isco_odbc_conv(T, Vx, V) ; V=Vx ).
 isco_be_get_arg(_, _, _, _, _, _, _, _, _, _).
 
@@ -506,7 +513,8 @@ isco_be_exec(BE, Q, R) :- BE :> exec(Q, R).
 isco_be_fetch(BE, R) :- BE :> fetch(R).
 isco_be_ntuples(BE, R, N) :- BE :> ntuples(R, N).
 isco_be_oid(BE, R, O) :- BE :> oid(R, O).
-isco_be_get_data(BE, R, X, T, V) :- BE :> get_data(R, X, T, V).
+isco_be_get_data(BE, R, X, _, V, term) :- !, BE :> get_data(R, X, term, V).
+isco_be_get_data(BE, R, X, IT, V, _) :- BE :> get_data(R, X, IT, V).
 
 
 % -- Check for adequate revision ----------------------------------------------
@@ -760,6 +768,10 @@ isco_tsort_level(M, PX, N, X) :-
 % -----------------------------------------------------------------------------
 
 % $Log$
+% Revision 1.18  2003/09/23 12:28:22  spa
+% WIP: update for computed classes.
+% fix term type: should not create atoms!
+%
 % Revision 1.17  2003/06/17 15:41:15  spa
 % don't barf on variables occurring in arguments lists when using positional
 % argument syntax.
