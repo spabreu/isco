@@ -502,7 +502,7 @@ isco_field_numbers([F|Fs], N, KF, CNAME) :-
 	( memberchk(f(K,NAME,TYPE,ATTRs2), Fs) ->
 	    KFi=K,				% repeated field (default?)
 	    KF=N1,
-	    insert(ATTRs, dupe=yes),
+	    member(dupe=yes, ATTRs),		% don't bail out on dupes!
 	    member(dupedIn=DUPEDIN, ATTRs2),
 	    insert(DUPEDIN, CNAME)		% remember WHO redefines it.
 	;
@@ -589,4 +589,5 @@ isco_display_st_v(V, _) :- format(" ~w", [V]).
 % mode: font-lock
 % mode: outline-minor
 % outline-regexp: "% \\(--\\|==\\) "
+% comment-column: 48
 % End:
