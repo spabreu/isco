@@ -11,7 +11,8 @@ isco_prolog_class_body(Vs, RNAME, HEAD, GOAL, CH, OC_MASK) :-
 	pg7 :> isco_prolog_class_body(Vs, RNAME, HEAD, GOAL, CH, OC_MASK).
 
 isco_prolog_class_body(Vs, RNAME, HEAD, GOAL, CH, OC_MASK) :-
-	
+	true.
+
 
 
 % -- isco_prolog_class_body(Vs, RNAME, HEAD, GOAL, CH, OC_VAR+MASK) -----------
