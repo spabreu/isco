@@ -297,6 +297,10 @@ isco_insert_arg_default(_,  _,  _, null).
 
 % -- SET part of SQL UPDATE for individual variables --------------------------
 
+isco_update_set_var(V, FN, T, PFi, PFo, SCi, SCo) :- % glue
+	isco_update_set_var(_, V, FN, T, PFi, PFo, SCi, SCo).
+
+
 isco_update_set_var(_, V, _,  _, PF, PF,  SC,   SC) :- var(V), !.
 isco_update_set_var(C, V, FN, T, PF, ",", SCin, SCout) :-
 	isco_odbc_format(T, C, V, VF),
@@ -569,6 +573,10 @@ isco_tsort_level(M, PX, N, X) :-
 % -----------------------------------------------------------------------------
 
 % $Log$
+% Revision 1.5  2003/01/18 15:48:04  spa
+% isco_update_set_var/7 helper predicate (it's now /8, really, but there are
+% calls to the same predicate w/o the connection: provide a default value...)
+%
 % Revision 1.4  2003/01/17 22:17:33  spa
 % Top-level wrappers for TUPLE :+ and TUPLE :\.
 %
