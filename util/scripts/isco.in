@@ -93,6 +93,7 @@ PILLOW=
 CGIMAIN=
 GPLCTOP=
 LIBPHP=
+DB=isco
 while [ ! -z "$1" ]; do
   case $1 in
 
@@ -125,6 +126,9 @@ may be:
   --schema
   -s                  Link with unit to produce SQL schema
                       (not usually needed)
+
+  -db=NAME            Specify default ISCO database name
+  -d NAME             (defaults to "isco")
 EOF
     exit 1;;
 
@@ -134,6 +138,15 @@ EOF
 
   -o)
     OUTPUT=$2;
+    shift;
+    shift;;
+
+  --db=*)
+    DB=${1#--db=};
+    shift;;
+
+  -d)
+    DB=$2;
     shift;
     shift;;
 
@@ -215,8 +228,8 @@ for IFILE in $IFILES; do
     PIFILE=$(tempfile -p isco -s .pl)
     [ -z "$KEEP" ] && { PIFILES="$PIFILES$PISEP$PIFILE"; PISEP=" "; }
   fi
-  [ -n "$VERBOSE" ] && echo 1>&2 $ISCOC -c $IFILE ">" $PIFILE
-  $ISCOC -c $IFILE > $PIFILE
+  [ -n "$VERBOSE" ] && echo 1>&2 $ISCOC -d $DB -c $IFILE ">" $PIFILE
+  $ISCOC -d $DB -c $IFILE > $PIFILE
   FILES="$FILES$SEP$PIFILE"
   SEP=" "
 done
