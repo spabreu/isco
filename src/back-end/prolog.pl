@@ -195,7 +195,8 @@ isco_prolog_class_body_fields([], true, _, _, _, _).
 isco_prolog_class_body_fields([P=f(V,N,T)|VARs], GOAL, CH, SH, VL, MASK) :-
 	isco_odbc_type(T, OT), odbc_type(OT, OTn),
 	( isco_odbc_conv(T, _, _) -> CONV=yes ; CONV=no ),
-	GOAL = (isco_be_get_arg(MASK, N, P, CH, SH, OTn, CONV, V, T, VL), Gs),
+	PX is P+1,		% FIXME: skip OID (extra first arg)
+	GOAL = (isco_be_get_arg(MASK, N, PX, CH, SH, OTn, CONV, V, T, VL), Gs),
 	isco_prolog_class_body_fields(VARs, Gs, CH, SH, VL, MASK).
 
 
@@ -576,6 +577,9 @@ isco_prolog_sequence(NAME, ATTRs) :-
 % -----------------------------------------------------------------------------
 
 % $Log$
+% Revision 1.4  2003/02/14 14:22:45  spa
+% Offset in column index due to OID being included in query.
+%
 % Revision 1.3  2003/01/19 08:28:38  spa
 % Code for 'select' now grabs OID as well.
 %
