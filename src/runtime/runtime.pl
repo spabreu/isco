@@ -59,8 +59,10 @@ isco_rollback(C) :-
 	isco_be_exec(C, "rollback transaction", R),
 	isco_be_fetch(C, R).
 
-isco_atomic(C, GOAL) :-
+isco_atomic(GOAL) :- isco_connection(C), isco_atomic(C, GOAL).
+isco_atomic(C, GOAL0) :-
 	isco_transaction(C),
+	isco_term_expansion(GOAL0, GOAL),
 	( catch(GOAL, _EX, fail) -> isco_commit(C) ; isco_rollback(C) ).
 
 % -- ISCO/Prolog update goal call ---------------------------------------------
@@ -114,7 +116,18 @@ isco_create_table(RELATION, SQL) :-
 % -- Utilities for above ------------------------------------------------------
 
 isco_arg_list(ARGS, GOAL, RELNAME) :-
-	isco_arg_list(ARGS, GOAL, RELNAME, 0, 0, _).
+	isco_arg_list(ARGS, GOAL, RELNAME, 0, 0, _),
+	!.
+
+isco_arg_list(ARGS, GOAL, RELNAME) :-
+	isco_class(RELNAME, NARGS),
+	isco_positional_arg_list(POS, NARGS, ARGS, GOAL),
+	( fd_domain(POS, [1, 3]) -> true
+	;   NSEEN is NARGS-POS+1,
+	    NARGSm2 is NARGS-2,
+	    throw(invalid(positional_arg_list(length(NSEEN)),
+			  relation(RELNAME,length(NARGS,NARGSm2)))) ).
+
 
 isco_arg_list(AAs, GOAL, RELNAME, BASE, MASK, MASKo) :-
 	nonvar(AAs),				% catch VAR where we should
@@ -137,6 +150,19 @@ isco_arg(ARG=VALUE, GOAL, RELNAME, BASE, MASKi, MASKo) :-
 	arg(POSITION, GOAL, VALUE).
 
 %% FIXME: deal with ARG>VALUE, etc.
+
+
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+isco_positional_arg_list(POS, N, AAs, G) :-
+	nonvar(AAs), AAs = (A,As),
+	!,
+	isco_positional_arg_list(POS0, N, As, G),
+	POS is POS0-1,
+	arg(POS, G, A).
+
+isco_positional_arg_list(POS, POS, A, G) :-
+	arg(POS, G, A).
 
 
 % -- ISCO/ODBC type equivalences ----------------------------------------------
@@ -169,6 +195,7 @@ isco_odbc_generated_type(term,      text).
 
 isco_odbc_conv(bool).
 isco_odbc_conv(term).
+isco_odbc_conv(text).
 
 %%DBG isco_odbc_conv(T, XV, PV) :- format("[~w]~n", [isco_odbc_conv(T, XV, PV)]), fail.
 
@@ -186,9 +213,12 @@ isco_odbc_conv(term, [], []) :- !.
 isco_odbc_conv(term, STRING, TERM) :-
 	catch( read_term_from_atom(STRING, TERM,
 				   [syntax_error(fail), end_of_term(eof)]),
-	       _ERROR,
-	       TERM=STRING ).
-%%DBG	format("~q~n", [isco_odbc_conv(term, TERM, STRING)]).
+	       _ERROR, TERM=STRING ).
+
+isco_odbc_conv(text, V, V) :- !.
+isco_odbc_conv(text, XV, PV) :- atom(XV), is_string(PV), !, name(XV, PV).
+isco_odbc_conv(text, XV, PV) :- is_string(XV), atom(PV), !, name(PV, XV).
+
 
 
 % -- ISCO/ODBC formats --------------------------------------------------------
@@ -207,10 +237,23 @@ isco_odbc_format(date, _, dt(Y,M,D,HH,MM,SS), DT) :- !,
 isco_odbc_format(date, _, dt(Y,M,D), DT) :- !,
 	format_to_codes(DT, "'~w-~w-~w'::date", [Y,M,D]).
 
-isco_odbc_format(text, _, S, SS) :- !,
+isco_odbc_format(text, _, S, SS) :-
+	nonvar(S),
+	is_string(S),
+	!,
+	SN = S,
+	isco_odbc_text_format(SN, SX),		% mung quotes...
+	format_to_codes(SS, "'~s'", [SX]).
+
+isco_odbc_format(text, _, S, SS) :-
+	atom(text),
+	!,
 	name(S, SN),
 	isco_odbc_text_format(SN, SX),		% mung quotes...
 	format_to_codes(SS, "'~s'", [SX]).
+
+isco_odbc_format(text, _, S, _) :-
+	throw(illegal(string_or_atom, S)).
 
 isco_odbc_format(term, _, S, SS) :- !,
 	format_to_codes(SN, "~k", [S]),
@@ -227,6 +270,11 @@ isco_odbc_format(bool, _, F, "0") :- memberchk(F, [f, false, 0]), !.
 
 isco_odbc_format(_TYPE, _, S, SS) :-
 	format_to_codes(SS, "~w", [S]).
+
+
+
+is_string([]) :- !.
+is_string([C|Cs]) :- integer(C), C>0, C<256, !, is_string(Cs).
 
 
 has_bool(_).					% they all accept booleans!
@@ -278,7 +326,7 @@ isco_odbc_fd_format(V, N, VF) :-
 isco_odbc_fd_format(V, N, VF) :-
 	fd_max(V, MAX),
 	fd_min(V, MIN),
-	format_to_codes(VF, "~w <= ~w and ~w <= ~w", [MIN, N, N, MAX]).
+	format_to_codes(VF, "~w >= ~w and o.~w <= ~w", [N, MIN, N, MAX]).
 
 
 isco_odbc_list_to_tuple([], []).
@@ -487,7 +535,18 @@ isco_tablename(CNAME, TNAME) :- isco_classtype(CNAME, external(_, TNAME)), !.
 
 % -- ISCO/Prolog update goal call ---------------------------------------------
 
-isco_term_expansion((R:=N@A), G) :- !, isco_term_expansion((R@A:=N), G).
+isco_term_expansion((RELNAME @ ARGS :\), GOAL) :- !,
+	atom(RELNAME),
+	isco_class(RELNAME, ARITYm1), ARITY is ARITYm1+1,
+	isco_order_tuple(ARGS, NARGS, ORDER),
+	atom_concat('isco_delete__', RELNAME, PREDNAME),
+	functor(GOAL, PREDNAME, ARITY),
+	isco_arg_list(NARGS, GOAL, RELNAME, 0, 0, MASK),
+	isco_order_clause(ORDER, ORDER_CLAUSE),
+	arg(ARITY, GOAL, ORDER_CLAUSE+MASK).
+
+isco_term_expansion((RELNAME := NEWARGS @ ARGS), GOAL) :- !,
+	isco_term_expansion((RELNAME @ ARGS := NEWARGS), GOAL).
 
 isco_term_expansion((RELNAME @ ARGS := NEWARGS / G), GOAL) :-
 	!,
@@ -527,6 +586,26 @@ isco_term_expansion((RELNAME @ ARGS), GOAL) :-
 	isco_order_clause(ORDER, ORDER_CLAUSE),
 	arg(ARITY, GOAL, ORDER_CLAUSE+MASK).
 
+% -- ISCO/Prolog delete goal --------------------------------------------------
+
+isco_term_expansion((RELNAME_ARGS :\), GOAL) :-
+	functor(RELNAME_ARGS, RELNAME, _),	% what relation is this?
+	atom(RELNAME),				% make sure it's bound
+	isco_class(RELNAME, ARITYm1), ARITY is ARITYm1+1,
+	!,
+	RELNAME_ARGS =.. [_ | ARGLIST],
+	atom_concat('isco_delete__', RELNAME, PREDNAME),
+	functor(GOAL, PREDNAME, ARITY),
+	( ARGLIST=[] ->
+	    ORDER_CLAUSE = [],
+	    MASK = 0
+	;
+	    isco_arglist_to_args(ARGLIST, ARGS),
+	    isco_order_tuple(ARGS, NARGS, ORDER),
+	    isco_order_clause(ORDER, ORDER_CLAUSE),
+	    isco_arg_list(NARGS, GOAL, RELNAME, 0, 0, MASK) ),
+	arg(ARITY, GOAL, ORDER_CLAUSE+MASK).
+
 % -- ISCO/Prolog update goal call ---------------------------------------------
 
 isco_term_expansion((RELNAME_ARGS), GOAL) :-
@@ -540,14 +619,6 @@ isco_term_expansion((RELNAME_ARGS), GOAL) :-
 
 % -- ISCO/Prolog insert goal --------------------------------------------------
 
-isco_term_expansion((RELNAME_ARGS :+), GOAL) :-
-	RELNAME_ARGS =.. [RELNAME | ARGLIST],
-	atom(RELNAME),
-	isco_class(RELNAME, _ARITY),
-	!,
-	isco_arglist_to_args(ARGLIST, ARGS),
-	isco_term_expansion((RELNAME := ARGS), GOAL).
-
 isco_term_expansion((RELNAME := NEWARGS), GOAL) :-
 	atom(RELNAME),				% make sure it's bound
 	isco_class(RELNAME, ARITY),
@@ -555,6 +626,16 @@ isco_term_expansion((RELNAME := NEWARGS), GOAL) :-
 	atom_concat('isco_insert__', RELNAME, PREDNAME),
 	functor(GOAL, PREDNAME, ARITY),
 	isco_arg_list(NEWARGS, GOAL, RELNAME).
+
+isco_term_expansion((RELNAME_ARGS :+), GOAL) :-	% alternate syntax
+	RELNAME_ARGS =.. [RELNAME | ARGLIST],
+	atom(RELNAME),
+	isco_class(RELNAME, _ARITY),
+	!,
+	isco_arglist_to_args(ARGLIST, ARGS),
+	isco_term_expansion((RELNAME := ARGS), GOAL).
+
+% -- Update goal --------------------------------------------------------------
 
 isco_term_expansion((RELNAME_ARGS := NEWARGS), GOAL) :-
 	functor(RELNAME_ARGS, RELNAME, _NUMARGS), % what relation is this?
@@ -564,22 +645,6 @@ isco_term_expansion((RELNAME_ARGS := NEWARGS), GOAL) :-
 	isco_arglist_to_args(ARGLIST, ARGS),
 	isco_term_expansion((RELNAME@ARGS:=NEWARGS), GOAL).
 
-
-% -- ISCO/Prolog delete goal --------------------------------------------------
-
-isco_term_expansion((RELNAME_ARGS :\), GOAL) :-
-	functor(RELNAME_ARGS, RELNAME, _),	% what relation is this?
-	atom(RELNAME),				% make sure it's bound
-	isco_class(RELNAME, ARITYm1), ARITY is ARITYm1+1,
-	!,
-	RELNAME_ARGS =.. [_ | ARGLIST],
-	isco_arglist_to_args(ARGLIST, ARGS),
-	atom_concat('isco_delete__', RELNAME, PREDNAME),
-	isco_order_tuple(ARGS, NARGS, ORDER),
-	functor(GOAL, PREDNAME, ARITY),
-	isco_arg_list(NARGS, GOAL, RELNAME, 0, 0, MASK),
-	isco_order_clause(ORDER, ORDER_CLAUSE),
-	arg(ARITY, GOAL, ORDER_CLAUSE+MASK).
 
 % -- Compound goals -----------------------------------------------------------
 
@@ -669,6 +734,9 @@ isco_tsort_level(M, PX, N, X) :-
 % -----------------------------------------------------------------------------
 
 % $Log$
+% Revision 1.14  2003/03/22 11:47:55  spa
+% *** empty log message ***
+%
 % Revision 1.13  2003/03/18 13:40:33  spa
 % isco_odbc_format/4: booleans now always produce "true" or "false".
 %
