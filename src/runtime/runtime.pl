@@ -164,6 +164,11 @@ isco_odbc_conv(bool, 0, FALSE) :- memberchk(FALSE, [false, f]).
 % isco_odbc_format(TYPE, DBCONN, PL_REP, EXT_REP)
 %
 
+isco_odbc_format(TYPE, PL_REP, EXT_REP) :- % assume postgres by default
+	isco_odbc_format(TYPE, pg(_), PL_REP, EXT_REP).
+
+
+
 isco_odbc_format(date, _, dt(Y,M,D,HH,MM,SS), DT) :- !,
 	format_to_codes(DT, "'~w-~w-~w ~w:~w:~w'::datetime", [Y,M,D,HH,MM,SS]).
 
@@ -552,8 +557,11 @@ isco_tsort_level(M, PX, N, X) :-
 % -----------------------------------------------------------------------------
 
 % $Log$
-% Revision 1.1  2003/01/06 14:27:22  spa
-% Initial revision
+% Revision 1.2  2003/01/17 14:26:41  spa
+% re-insert isco_odbc_format/3, as it's used in generated code.
+%
+% Revision 1.1.1.1  2003/01/06 14:27:22  spa
+% Imported into CVS
 %
 % Revision 1.34  2001/08/29 16:39:32  spa
 % Tweaked transaction support.
