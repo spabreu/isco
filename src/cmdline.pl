@@ -51,7 +51,7 @@ action(FILEs, [compile]) :-
 	!,
 	isco_load_files(FILEs, [], PROGRAM),
 	parser :> parse(APT, PROGRAM, []),
-	isco_apt(APT, ST),
+	( isco_apt(APT, ST) -> true ; throw(internal_error(isco_apt)) ),
 	!,
 	directives(ST) :> emit,
 	schema(ST) :> emit,
@@ -184,6 +184,9 @@ isco_php_lib('-L -lpq').
 
 
 % $Log$
+% Revision 1.3  2003/04/11 08:53:04  spa
+% Correct computed classes...
+%
 % Revision 1.2  2003/03/12 19:06:49  spa
 % Use simplified unit names...
 %

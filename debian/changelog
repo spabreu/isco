@@ -1,3 +1,9 @@
+isco (2.2-9) unstable; urgency=low
+
+  * back-end/prolog.pl: only emit glue predicate once!
+
+ -- Salvador Abreu <spa@debian.org>  Fri, 11 Apr 2003 01:21:44 +0100
+
 isco (2.2-8) unstable; urgency=low
 
   * back-end/prolog.pl: special methods for computed classes.

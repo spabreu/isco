@@ -77,6 +77,7 @@ isco_prolog_class(CNAME, NET) :-		% computed classes
 	nonvar(RULES),
 	!,
 	isco_prolog_class_header(computed, CNAME, NET),
+	isco_prolog_computed_class_prefix(RULES, CNAME),
 	isco_prolog_computed_class(RULES),
 	isco_prolog_class_inheritance(CNAME, NET).
 
@@ -130,6 +131,13 @@ isco_prolog_class_header_fields([f(NUM,NAME,TYPE,ATTRs)|Fs]) :-
 	isco_prolog_class_header_fields(Fs), !,
 	( ol_memberchk(dupe, ATTRs) -> true
 	;   format("%%    ~2w. ~w: ~w.~n", [NUM, NAME, TYPE]) ).
+
+
+isco_prolog_computed_class_prefix([rule(HEAD,_)|_], CNAME) :-
+	HEAD =.. [PNAME, _OID, CNAME1 | ARGS],
+	HEAD0 =.. [PNAME | ARGS],
+	portray_clause((HEAD0 :- HEAD)), nl.
+isco_prolog_computed_class_prefix(_, _).
 
 
 isco_prolog_computed_class(EOR) :- var(EOR), !.
@@ -258,6 +266,8 @@ isco_method(odbc(DB), odbc(DB), sql).
 isco_method(odbc(DB, METHOD), odbc(DB), METHOD).
 isco_method(postgres(DB), postgres("", DB), pg6).
 isco_method(postgres(DB, HOST), postgres(HOST, DB), pg6).
+
+isco_method(computed, computed, computed).
 
 isco_method(ITEMS, TRANSPORT, METHOD) :-	% fallback (preferred)
 	lookup(ITEMS, transport, transport=TRANSPORT),
@@ -553,13 +563,16 @@ isco_prolog_class_inheritance_one(CN, SN, NF, NET) :-
 	findall(NAME, ol_member(f(_,NAME,_,_), FIELDS), NAMEs),
 	sort(NAMEs, SNAMEs),			% remove dups
 	length(SNAMEs, NFSUB),			% how many?
-	NAH is NF+2,				% add CONN & MASK
-	NAB is NFSUB+2,				% same here...
+	( lookup(NET, prules, _) -> XARGS=0 ; XARGS=2 ),
+	NAH is NF+XARGS,			% (maybe) add CONN & MASK
+	NAB is NFSUB+XARGS,			% same here...
 	functor(HEAD, CN, NAH),
 	functor(BODY, SN, NAB),
 	HEAD =.. [_|HA],
 	BODY =.. [_|HB],
-	isco_prolog_class_inheritance_matcher(HA, HB),
+	( XARGS=0 ->				% is this a computed class?
+	    append(HA, _, HB)			% if so, match all orig args
+	;   isco_prolog_class_inheritance_matcher(HA, HB) ),
 	!,
 	portray_clause((HEAD :- BODY)), nl.
 
@@ -622,6 +635,9 @@ isco_prolog_sequence(NAME, ATTRs) :-
 % -----------------------------------------------------------------------------
 
 % $Log$
+% Revision 1.15  2003/04/11 08:53:04  spa
+% Correct computed classes...
+%
 % Revision 1.14  2003/04/09 12:05:50  spa
 % "Quote" field names in inserts, as they may be reserved words.
 %
