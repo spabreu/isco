@@ -382,7 +382,7 @@ isco_prolog_code_insert(CNAME, NET, NFs, Fs) :-
 	    BODY1 = (isco_connection(ISCO_XID, CH), HEAD1) ),
 	reverse(Fs2, RFs2),			% *CROCK*
 	isco_prolog_class_argnames(RFs2, [], ANSTRING, ''),
-	format_to_codes(Q0, 'insert into ~w(~s) values', [XNAME, ANSTRING]),
+	format_to_codes(Q0, 'insert into "~w"(~s) values', [XNAME, ANSTRING]),
 	BODY = (QPFX = Q0, BODY2),
 	reverse(Fs, RFs),			% *CROCK*
 	arg(1,HEAD,OID),			% **OBNOXIOUS CROCK**
@@ -451,7 +451,8 @@ isco_prolog_code_delete(CNAME, NET, NFs, Fs) :-
 	    BODY1 = (isco_connection(ISCO_XID, CH), HEAD1) ),
 	% ---------------------------------------------------------------------
 	Bdelete = (
-	    format_to_codes(QUERYd, 'delete from ~w where oid=~w', [IOF, OID]),
+	    format_to_codes(QUERYd, 'delete from "~w" where oid=~w',
+			    [IOF, OID]),
 	    ( g_read(isco_debug_sql, 1) ->
 	      format('sql(~w): ~s~n', [CH, QUERYd]) ; true ),
 	    isco_be_exec(CH, QUERYd, _) ),
@@ -519,7 +520,7 @@ isco_prolog_code_update(CNAME, NET, NFs, Fs) :-
 	length(HA_S, NFsm2),			% HA_W: head args for WHERE...
 	append(_, [HA_M|HA_S], HA_WMS),		% ...are at the end of HA.
 	BODY = ((Bselect,
-		 format_to_codes(Q0, 'update ~w set', [IOF]),
+		 format_to_codes(Q0, 'update "~w" set', [IOF]),
 		 B1)),
 	H_S =.. [CNAME, _, _ | HA_S],		% head for SET (fake OID, IOF).
 	B1 = ( call(HA_G) -> B2 ; fail ),
@@ -735,6 +736,9 @@ isco_prolog_sequence(NAME, ATTRs) :-
 % -----------------------------------------------------------------------------
 
 % $Log$
+% Revision 1.18  2003/05/24 14:32:10  spa
+% Quote class names in SQL queries.
+%
 % Revision 1.17  2003/04/16 08:45:20  spa
 % Add fake ORDER+MASK arguments to computed select and delete clauses.
 %

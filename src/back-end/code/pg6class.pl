@@ -31,7 +31,7 @@ isco_prolog_class_body(Vs, CNAME, RNAME, HEAD, GOAL, CH, OC_VAR+MASK) :-
 	  ( isco_field(CNAME, classe, text, _) ->
 	      CLASSE=', o.classe as instanceOf'
 	  ;   CLASSE='' ),
-	  format_to_codes(SQLin, 'select o.oid~w~s from ~w* o',
+	  format_to_codes(SQLin, 'select o.oid~w~s from "~w"* o',
 			  [CLASSE, SELf, RNAME]),
 	  G1 ),
 	isco_where_clause(Vs, CH, G1, G2, SQLin, SQLout),
