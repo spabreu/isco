@@ -26,13 +26,42 @@
 
 % == SQL code generation (schema) for ISCO ====================================
 
-emit :- ( isco_sequence(REL, regular)
-	; isco_schema_class(REL) ),
-	isco_sql_code(REL), fail.
+emit :- isco_sequence(SEQ, regular), isco_sql_code(SEQ), fail.
+emit :- nl, isco_schema_class(REL), isco_sql_code(REL), fail.
 emit.
 
-isco_sql_code(REL) :-
-	isco_sql_code(REL, o_rel).
+
+build :- build(_).
+
+build(REL) :-
+	current_output(STREAM),			% to preserve
+	build(STREAM, REL).
+	
+
+build(STREAM, REL) :-
+	isco_connection(CH),			% back-end connection
+	open_output_codes_stream(OUT),
+	add_stream_alias(OUT, sql),
+	set_output(sql),
+	( isco_sequence(REL, regular) ; isco_schema_class(REL) ),
+	isco_sql_code(REL),			% generate SQL code (nondet)
+	close_output_codes_stream(sql, SQL),	% get output
+	open_output_codes_stream(OUT2),		% reopen stream
+	add_stream_alias(OUT2, sql),
+	set_output(sql),
+	(g_read(isco_debug_sql, 1) ->
+	    format(STREAM, 'sql(~w): ~s', [CH, SQL]); true),
+	catch(isco_be_exec(CH, SQL, _),
+	      error(system_error(ERROR), _PRED),
+	      format(STREAM, 'warning: ~w', [ERROR])),
+	fail.
+build(STREAM, _) :-
+	( close_output_codes_stream(sql, _) -> true ; true ),
+	set_output(STREAM).
+
+
+isco_sql_code(REL) :- isco_sql_code(REL, o_rel).
+
 
 %% -- Generate code for an ISCO relation --------------------------------------
 %%
@@ -43,22 +72,24 @@ isco_sql_code(REL) :-
 
 isco_sql_code(SNAME, _) :-
 	isco_sequence(SNAME, regular),
-	format('create sequence "~w";~n', [SNAME]).
+	format('create sequence "~w";\n', [SNAME]).
 
 isco_sql_code(REL, DBTYPE) :-
 	isco_class(REL, _),
 	isco_sql_header(REL, COMMA),
 	isco_sql_fields(REL, DBTYPE, COMMA),
 	isco_sql_class_attributes(REL, DBTYPE),
-	isco_sql_trail(REL, DBTYPE),
-	isco_sql_extra_stuff(REL, DBTYPE),
-	nl.
+	isco_sql_trail(REL, DBTYPE).
+
+isco_sql_code(REL, DBTYPE) :-
+	isco_class(REL, _),
+	isco_sql_extra_stuff(REL, DBTYPE).
+
 
 % -- Generate the SQL table creation ------------------------------------------
 
-isco_sql_header(CNAME, COMMA) :-
-	format('create table "~w" (', [CNAME]),
-	COMMA='\n'.
+isco_sql_header(CNAME, '\n') :-
+	format('create table "~w" (', [CNAME]).
 
 
 isco_sql_fields(REL, o_rel, COMMA) :- !,
@@ -112,7 +143,7 @@ isco_sql_field_attributes(CLASS, FIELD) :-
 
 isco_sql_class_attributes(REL, _) :-
 	isco_subclass(SC, REL), isco_compound_key(SC, FIELDs), !,
-	format(',~n    primary key (', []),
+	format(',\n    primary key (', []),
 	isco_sql_class_keylist(FIELDs, ''),
 	format(')', []).
 isco_sql_class_attributes(_, _).
@@ -126,20 +157,10 @@ isco_sql_class_keylist([F|Fs], PFX) :-
 
 isco_sql_trail(REL, o_rel) :-
 	isco_superclass(REL, SC), !,
-	format(')\n    inherits ("~w");\n', [SC]),
-	isco_sql_inherited_key(REL).
+	format(')\n    inherits ("~w");\n', [SC]).
 isco_sql_trail(_, _) :-
 	format(');\n', []).
 
-
-isco_sql_inherited_key(REL) :-
-	isco_superclass(REL, SC),
-	isco_field_key(REL, K),			% primary key shared w/ super
-	isco_field_key(SC, K),
-	!,
-	format('alter table "~w" add constraint "~w_pkey" primary key ("~w");\n',
-	       [REL, REL, K]).
-isco_sql_inherited_key(_).
 
 
 isco_sql_extra_stuff(REL, _) :-
@@ -155,12 +176,27 @@ isco_sql_extra_stuff(REL, _) :-
 	g_read(RELX, RELXN), RELXN1 is RELXN+1, g_assign(RELX, RELXN1),
 	format('create index "~w__~w" on "~w" (', [RELX, RELXN1, REL]),
 	format('"~w");', [FNAME]).
+isco_sql_extra_stuff(REL, _) :-
+	once((isco_superclass(REL, SC),
+	      isco_field_key(REL, K),		% primary key shared w/ super
+	      isco_field_key(SC, K))),
+	format('alter table "~w" add constraint "~w_pkey" primary key ("~w");\n',
+	       [REL, REL, K]).
 isco_sql_extra_stuff(_, _).
 
 
 % -----------------------------------------------------------------------------
 
 % $Log$
+% Revision 1.4  2003/03/12 19:05:25  spa
+% - new predicates build/0, /1 and /2: like emit/0 but they actually call the
+%   back-end to create the tables, etc.
+%
+% - isco_sql_inherited_key/1 now a special case of isco_sql_extra_stuff/2.
+%
+% - build/2 relies on isco_sql_code/2 returning exactly ONE SQL statement per
+%   solution (eg, no index creation after a "create table")
+%
 % Revision 1.3  2003/03/10 23:18:03  spa
 % Create indexes in subclasses, whenever needed.
 %
@@ -226,4 +262,5 @@ isco_sql_extra_stuff(_, _).
 % mode: prolog
 % mode: font-lock
 % mode: outline-minor
+% comment-column: 48
 % End:
