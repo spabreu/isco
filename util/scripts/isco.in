@@ -87,6 +87,11 @@ PISEP=""
 COMPILE=
 KEEP=
 VERBOSE=
+USEPHP=
+PILLOW=
+CGIMAIN=
+GPLCTOP=
+LIBPHP=
 while [ ! -z "$1" ]; do
   case $1 in
 
@@ -99,6 +104,13 @@ may be:
 
   --output=EXECFILE
   -o EXECFILE         Output result to EXECFILE
+
+  --php
+  -p                  Produce php-ready executable
+
+  --pillow            Include the PiLLoW HTML/XML library
+
+  --cgi               Produce cgi-bin executable
 
   --compile
   -c                  Compile only (do not link)
@@ -122,6 +134,25 @@ EOF
   -o)
     OUTPUT=$2;
     shift;
+    shift;;
+
+  -p|--php)
+    USEPHP=yes;
+    GPLCTOP="--no-top-level";
+    LIBPHP="$PLXDIR/php/module.o";
+    shift;;
+
+  --pillow)
+    PILLOW=$PLXDIR/pillow/module.o;
+    shift;;
+
+  --cgi)
+    PILLOW=$PLXDIR/pillow/module.o;
+    GPLCTOP="--no-top-level --no-redef-error";
+    CGIMAIN=$(tempfile -p isco-main -s .pl)
+    cat >$CGIMAIN <<EOF
+top_level :- main.
+EOF
     shift;;
 
   -c|--compile)
@@ -151,7 +182,7 @@ EOF
     ISEP=" ";
     shift;;
 
-  *.pl|*.c)
+  *.pl|*.c|*.o)
     FILE=$1;
     FILES="$FILES$SEP$FILE";
     SEP=" ";
@@ -191,8 +222,12 @@ done
 
 [ -z "$OUTPUT" ] && exit 0
 
-[ -n "$VERBOSE" ] && echo 1>&2 $GPLC -o $OUTPUT $PREFIX $FILES $SUFFIX
-$GPLC -o $OUTPUT $PREFIX $FILES $SUFFIX
+[ -n "$VERBOSE" ] && \
+  echo 1>&2 \
+    $GPLC $GPLCTOP -o $OUTPUT $PREFIX $CGIMAIN $FILES $SUFFIX $PILLOW $LIBPHP
+$GPLC $GPLCTOP -o $OUTPUT $PREFIX $CGIMAIN $FILES $SUFFIX $PILLOW $LIBPHP
+
+[ -n "$CGIMAIN" ] && rm -f $CGIMAIN
 
 if [ -z "$KEEP" -a -n "$PIFILES" ]; then
     [ -n "$VERBOSE" ] && echo 1>&2 rm -f $PIFILES

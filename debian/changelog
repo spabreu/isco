@@ -1,3 +1,18 @@
+isco (2.0-3) unstable; urgency=low
+
+  * util/scripts/isco: new flags (--php, --cgi, --pillow) to produce
+    PHP-ready executables, CGI-BIN executables and PiLLoW-equipped code.
+  * depends: on gprolog-php-cx, gprolog-pillow-cx, gprolog-postgresql-cx,
+    etc.
+
+ -- Salvador Abreu <spa@debian.org>  Tue, 18 Feb 2003 21:24:55 +0000
+
+isco (2.0-2) unstable; urgency=low
+
+  * Using OIDs in select queries requires that column indexed be shifted.
+
+ -- Salvador Abreu <spa@debian.org>  Fri, 14 Feb 2003 14:30:13 +0000
+
 isco (2.0-1) unstable; urgency=low
 
   * Fixed to work with latest postgresql.
