@@ -82,6 +82,16 @@ RELNAME_ARGS := NEWARGS :-
 	isco_term_expansion((RELNAME_ARGS := NEWARGS), GOAL), !,
 	call(GOAL).
 
+RELNAME_ARGS :+ :-
+	isco_term_expansion((RELNAME_ARGS :+), GOAL), !,
+	call(GOAL).
+
+% -- ISCO/Prolog delete goal --------------------------------------------------
+
+RELNAME_ARGS :\ :-
+	isco_term_expansion((RELNAME_ARGS :\), GOAL), !,
+	call(GOAL).
+
 % -- Create tables in SQL from the Prolog database ----------------------------
 
 isco_create_table(RELNAME) :-
@@ -437,6 +447,7 @@ isco_term_expansion((RELNAME_ARGS :+), GOAL) :-
 	!,
 	isco_arglist_to_args(ARGLIST, ARGS),
 	isco_term_expansion((RELNAME := ARGS), GOAL).
+
 isco_term_expansion((RELNAME := NEWARGS), GOAL) :-
 	atom(RELNAME),				% make sure it's bound
 	isco_class(RELNAME, ARITY),
@@ -558,6 +569,9 @@ isco_tsort_level(M, PX, N, X) :-
 % -----------------------------------------------------------------------------
 
 % $Log$
+% Revision 1.4  2003/01/17 22:17:33  spa
+% Top-level wrappers for TUPLE :+ and TUPLE :\.
+%
 % Revision 1.3  2003/01/17 14:55:34  spa
 % isco_odbc_format/4 defaults to an atom-to-string conversion.
 %
