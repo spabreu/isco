@@ -577,7 +577,7 @@ isco_prolog_sequence(NAME, ATTRs) :-
 	atom_concat(NAME, '_current', SEQ_C),
 	atom_concat(NAME, '_next', SEQ_N),
 	HEAD =.. [ NAME, H_V ],
-	format_to_atom(Q_S, "select setval('~w', ~~w)", [SNAME]),
+	format_to_codes(Q_S, "select setval('~w', ~~w)", [SNAME]),
 	BODY = (nonvar(H_V), !, integer(H_V),
 		format_to_codes(Q_SX, Q_S, [H_V]),
 		isco_connection(DBREF, H_C),
@@ -589,7 +589,7 @@ isco_prolog_sequence(NAME, ATTRs) :-
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 	HEAD_C =.. [SEQ_C, HC_C, HC_V],
 	HEAD_C0 =.. [SEQ_C, HC_V],
-	format_to_atom(Q_C, 'select currval(''~w'')', [SNAME]),
+	format_to_codes(Q_C, 'select currval(''~w'')', [SNAME]),
 	BODY_C = (isco_be_exec(HC_C, Q_C, HC_S),
 		  isco_be_fetch(HC_C, HC_S),
 		  isco_be_get_data(HC_C, HC_S, 1, TYPE, HC_V)),
@@ -601,7 +601,7 @@ isco_prolog_sequence(NAME, ATTRs) :-
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 	HEAD_N =.. [SEQ_N, HN_C, HN_V],
 	HEAD_N0 =.. [SEQ_N, HN_V],
-	format_to_atom(Q_N, 'select nextval(''~w'')', [SNAME]),
+	format_to_codes(Q_N, 'select nextval(''~w'')', [SNAME]),
 	BODY_N = (isco_be_exec(HN_C, Q_N, HN_N),
 		  isco_be_fetch(HN_C, HN_N),
 		  isco_be_get_data(HN_C, HN_N, 1, TYPE, HN_V)),
@@ -614,6 +614,9 @@ isco_prolog_sequence(NAME, ATTRs) :-
 % -----------------------------------------------------------------------------
 
 % $Log$
+% Revision 1.9  2003/03/07 23:01:05  spa
+% Sequence ops must yield strings, not atoms.
+%
 % Revision 1.8  2003/03/07 15:30:27  spa
 % *** empty log message ***
 %
