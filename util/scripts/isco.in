@@ -62,6 +62,9 @@ DB="\
 	$PLXDIR/odbc/interface.pl \
 	$PLXDIR/odbc/module.o"
 
+SQLGENO="\
+	$LIBDIR/sql.o"
+
 LIBDB="-L -lodbc -L -lpq"
 
 SUFFIX="$DB $LIBDB"
@@ -89,7 +92,26 @@ while [ ! -z "$1" ]; do
 
   --help|-h)
     cat <<EOF
-usage: $PROG ... [to be written]
+usage: $PROG [OPTIONS] INFILE...
+
+where INFILE may be FILE.pl, FILE.isco or FILE.o and OPTIONS
+may be:
+
+  --output=EXECFILE
+  -o EXECFILE         Output result to EXECFILE
+
+  --compile
+  -c                  Compile only (do not link)
+
+  --keep
+  -k                  Keep temporary (*.pl) files
+
+  --verbose
+  -v                  Echo commands before executing them
+
+  --schema
+  -s                  Link with unit to produce SQL schema
+                      (not usually needed)
 EOF
     exit 1;;
 
@@ -113,6 +135,10 @@ EOF
 
   -v|--verbose)
     VERBOSE=yes;
+    shift;;
+
+  -s|--schema)
+    PREFIX="$PREFIX $SQLGENO"
     shift;;
 
   -*)
