@@ -376,10 +376,13 @@ isco_where_var(_, V, N, term, WP, 'and', WC, WCo) :- % special for terms...
 	isco_odbc_text_format_no_percent(VS, VF), % mung quotes...
 	format_to_codes(WCo, '~s ~w o."~w" like \'~s\'', [WC, WP, N, VF]).
 isco_where_var(C, V, N, T, WP, 'and', WC, WCo) :-
-	isco_odbc_format(T, C, V, VF),
 	(N = instanceOf ->
-	    format_to_codes(WCo, '~s ~w c.relname=~s', [WC, WP, VF])
+	    ( isco_superclass(C, _) ->
+		isco_odbc_format(T, C, V, VF),
+		format_to_codes(WCo, '~s ~w c.relname=~s', [WC, WP, VF])
+	    ; WCo = WC )
 	;
+	    isco_odbc_format(T, C, V, VF),
 	    format_to_codes(WCo, '~s ~w o."~w"=~s', [WC, WP, N, VF]) ).
 
 % -- SQL ORDER BY generation for individual variables -------------------------
@@ -768,6 +771,10 @@ isco_tsort_level(M, PX, N, X) :-
 % -----------------------------------------------------------------------------
 
 % $Log$
+% Revision 1.19  2004/04/27 20:13:39  spa
+% isco_where_var/8: take into account that final classes don't have a
+%     "c.relname" available.
+%
 % Revision 1.18  2003/09/23 12:28:22  spa
 % WIP: update for computed classes.
 % fix term type: should not create atoms!
