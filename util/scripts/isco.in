@@ -64,7 +64,7 @@ DB="\
 	$PLXDIR/odbc/module.o"
 
 SQLGENO="\
-	$LIBDIR/sql.o"
+	$LIBDIR/sql-build.o"
 
 LIBDB="-L -lodbc -L -lpq"
 
