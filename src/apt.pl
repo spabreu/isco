@@ -40,7 +40,7 @@
 %    where FList is a (open, in the case of subclasses) list of fields
 % Each field (member of FList) is:
 %  f(ORDER, NAME, TYPE, ATTRS), where:
-%    ORDER is an unbound variable or an integer for serializing fields
+%    ORDER is unbound or an integer (the position) for serializing fields
 %    NAME  is the name of the field
 %    TYPE  is the type of the field.  This is an ISCO basic type.
 %    ATTRS is a list of attributes, which includes:
@@ -48,6 +48,8 @@
 %      constant(VALUES) if this field must map to the indicated values:
 %       VALUES is a list of (atomic) values.
 %      internal(CLASS, FIELD) if this field must belong to CLASS.FIELD.
+%      hidden if this field is to be hidden from regular uses
+%      skip if this field is *not* to be counted
 %
 % super=SUPERCLASSNAME
 % name=CLASSNAME
@@ -64,6 +66,7 @@
 isco_apt(APT, ST) :-
 	isco_apt_names(APT, ST),		% basic name analysis
 	isco_apt_inherits(ST, ST),		% inheritance (fill in fields)
+	isco_apt_zap_fields(ST), 		% 
 	isco_apt_types(ST, ST),			% type checking
 	isco_apt_number(ST),			% number fields
 	isco_apt_rules(ST, ST).			% rule pre-processing
@@ -88,9 +91,10 @@ isco_apt_name(class(NAME, ATTRs, SUPERs, DEFs), ST) :-
 	insert(NET, name=NAME),			% redundant but convenient...
 	insert(NET, super=SUPERs),
 	insert(NET, atrib=ATTRs),
-	insert(NET, fields=_FIELDs),
+	insert(NET, fields=FIELDs),
 	insert(NET, rules=_RULEs),
 	isco_apt_field_defs(DEFs, NAME, NET, ST),
+	isco_apt_default_fields(SUPERs, FIELDs, NAME),
 	isco_apt_name_defs(DEFs, NAME, NET, ST).
 
 isco_apt_name(clause(HEAD, BODY), ST) :-
@@ -123,6 +127,17 @@ isco_apt_name_defs([DEF|DEFs], CNAME, NET, ST) :-
 	isco_apt_name_def(DEF, CNAME, NET, ST),
 	isco_apt_name_defs(DEFs, CNAME, NET, ST).
 isco_apt_name_defs([], _CNAME, _NET, _ST).
+
+
+% -- Fill in default fields ---------------------------------------------------
+
+% Don't do it if this has superclasses.
+
+isco_apt_default_fields(SUPERs, _, _) :- var(SUPERs), !.
+isco_apt_default_fields([_|_], _, _) :- !.	% it's a subclass: inherit
+isco_apt_default_fields(_, FST, _CNAME) :-	% not a subclass: extra fields.
+	insert(FST, f(2, instanceOf, text, [hidden=yes|_])),
+	insert(FST, f(1, oid, int, [hidden=yes|_])).
 
 
 % -- field DEF for field node -------------------------------------------------
@@ -392,6 +407,25 @@ isco_apt_inherit(_, _, _).
 isco_inherit_supers(CFs, SFs) :- var(CFs), !, CFs=SFs.
 isco_inherit_supers([_CF|CFs], SFs) :- isco_inherit_supers(CFs, SFs).
 
+
+% == Mark useless fields as "skip" ============================================
+
+isco_apt_zap_fields(ST) :- var(ST), !.
+isco_apt_zap_fields([K=V|Es]) :-
+	isco_apt_zap_fields(K, V),
+	isco_apt_zap_fields(Es).
+
+isco_apt_zap_fields(_NAME, NET) :-
+	lookup(NET, subs, subs=DESC),
+	\+ DESC=[],				% it's got subclasses
+	lookup(NET, fields, fields=FLIST),
+	ol_memberchk(f(_,instanceOf,_,ALIST), FLIST),
+	!,
+	insert(ALIST, skip=yes).
+isco_apt_zap_fields(_, _).
+
+
+
 % == Perform type analysis and checking on the symbol table ===================
 
 isco_apt_types(ST, _) :- var(ST), !.
@@ -460,10 +494,20 @@ isco_number(CNAME=NET) :-
 	isco_field_numbers(LFs, 0, _, CNAME).
 
 isco_field_numbers([], N, N, _).
-isco_field_numbers([F|Fs], N, N2, CNAME) :-
+% isco_field_numbers([F|Fs], N, N1, CNAME) :-
+% 	F=(_,_,_,FAs), lookup(FAs, skip, _), !, % marked to be skipped?
+% 	isco_field_numbers(Fs, N, N1, CNAME). % if so, ignore
+isco_field_numbers([F|Fs], N, KF, CNAME) :-
 	isco_field_numbers(Fs, N, N1, CNAME),
-	N2 is N1+1,
-	isco_field_number(F, N2, CNAME).
+	F=f(KF,NAME,TYPE,ATTRs),
+	( memberchk(f(K,NAME,TYPE,ATTRs2), Fs) ->
+	    KF=K,				% repeated field (default?)
+	    insert(ATTRs, dupe=yes),
+	    member(dupedIn=DUPEDIN, ATTRs2),
+	    insert(DUPEDIN, CNAME)		% remember WHO redefines it.
+	;
+	    KF is N1+1,				% genuine new field...
+	    isco_field_number(F, KF, CNAME) ).
 
 isco_field_number(f(N,_,_,_), N, _) :- !.
 isco_field_number(f(K,NAME,TYPE,_ATTRS), N, CNAME) :-
@@ -483,6 +527,16 @@ isco_literal_type(_, term).
 
 
 isco_default_type(text).
+
+
+isco_nondupe_fields(Fs, FF) :- isco_skip_fields(Fs, dupe=yes, FF).
+isco_skip_fields(Fs, FF)    :- isco_skip_fields(Fs, skip=yes, FF).
+
+
+isco_skip_fields(Fs, ATTR, FF) :-
+	findall(F, (ol_member(F, Fs),
+		       F=f(_,_,_,AL),
+		       \+ ol_memberchk(ATTR, AL)), FF).
 
 
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

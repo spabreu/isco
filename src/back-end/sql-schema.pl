@@ -135,7 +135,9 @@ isco_schema_entry(classtype, NAME, _NET, ok) :- !,
 	portray_clause(isco_classtype(NAME, regular)), nl.
 
 isco_schema_entry(class, CNAME, NET, ok) :-
-	lookup(NET, fields, fields=Fs), ol_length(Fs, NFs), !,
+	lookup(NET, fields, fields=Fs),
+	isco_nondupe_fields(Fs, FF),
+	ol_length(FF, NFs), !,
 	portray_clause(isco_class(CNAME, NFs)), nl.
 
 isco_schema_entry(superclass, CNAME, NET, DONE) :-
@@ -176,10 +178,12 @@ isco_schema_entry(attr(ATTRIBUTE), CNAME, NET, DONE) :-
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 isco_schema_field([],  _).
-isco_schema_field([f(POS,NAME,TYPE,_)|Fs], CFNAME) :-
-	isco_schema_field(Fs, CFNAME), % reverse order
-	HEAD =.. [CFNAME, NAME, POS, TYPE],
-	portray_clause(HEAD), nl.
+isco_schema_field([f(POS,NAME,TYPE,ATTRs)|Fs], CFNAME) :-
+	isco_schema_field(Fs, CFNAME),		% reverse order
+	( lookup(ATTRs, dupe, dupe=yes) ->
+	    true				% duplicate field: ignore
+	;   HEAD =.. [CFNAME, NAME, POS, TYPE],
+	    portray_clause(HEAD), nl ).
 
 
 isco_schema_attr([], _, _, _).
@@ -197,11 +201,15 @@ isco_schema_pattern(SET, CNAME, F, CLAUSE) :-
 
 isco_schema_pattern(domain, CNAME, f(_,FNAME,_,ATTRs),
 	isco_field_domain(CNAME, FNAME, XCNAME, XFNAME), OK) :-
-	   ( ol_memberchk(internal(XCNAME,XFNAME), ATTRs) -> OK=ok ; OK=no ).
+	( lookup(ATTRs, dupe, dupe=yes) -> fail	% ignore dups
+	; ol_memberchk(internal(XCNAME,XFNAME), ATTRs) -> OK=ok ; OK=no ).
 
 isco_schema_pattern(defaults, CNAME, f(_,FNAME,_,ATTRs),
 	isco_field_default(CNAME, FNAME, VALUE), OK) :-
-	   ( ol_memberchk(default(VALUE), ATTRs) -> OK=ok ; OK=no ).
+	( lookup(ATTRs, dupedIn, dupedIn=DUPEDIN) ->
+	    ( ol_memberchk(CNAME, DUPEDIN) -> fail
+	    ;	ol_memberchk(default(VALUE), ATTRs) -> OK=ok ; OK=no )
+	;   ( ol_memberchk(default(VALUE), ATTRs) -> OK=ok ; OK=no ) ).
 
 isco_schema_pattern(unique, CNAME, f(_,FNAME,_,ATTRs),
 	isco_field_unique(CNAME, FNAME), OK) :-
@@ -223,6 +231,10 @@ isco_schema_pattern(index, CNAME, f(_,FNAME,_,ATTRs),
 % -----------------------------------------------------------------------------
 
 % $Log$
+% Revision 1.3  2003/03/05 01:12:41  spa
+% support oid= and instanceOf= arguments.
+% support redefinition of arguments, namely for default values.
+%
 % Revision 1.2  2003/02/28 23:39:27  spa
 % isco_schema_attr/4: first clause had an argument too many!
 %

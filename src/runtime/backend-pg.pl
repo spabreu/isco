@@ -29,10 +29,16 @@
 exec(Q, R) :- pq_exec(C, Q, R).
 fetch(_).
 get_data(R, X, T, V) :- pq_get_data(R, X, T, V).
+ntuples(R, N) :- pq_ntuples(R, N).
+oid(_R, O) :- pq_last_oid(C, O).
 
 % $Log$
-% Revision 1.1  2003/01/06 14:27:21  spa
-% Initial revision
+% Revision 1.2  2003/03/05 01:12:41  spa
+% support oid= and instanceOf= arguments.
+% support redefinition of arguments, namely for default values.
+%
+% Revision 1.1.1.1  2003/01/06 14:27:21  spa
+% Imported into CVS
 %
 
 % Local Variables:

@@ -254,10 +254,10 @@ isco_where_var(_, V, N, T, WP, 'and', WC, WCo) :-
 	fd_var(V), T=int,			% FD only for int type...
 	!,
 	isco_odbc_fd_format(V, N, VF),
-	format_to_codes(WCo, '~s ~w ~s', [WC, WP, VF]).
+	format_to_codes(WCo, '~s ~w o.~s', [WC, WP, VF]).
 isco_where_var(C, V, N, T, WP, 'and', WC, WCo) :-
 	isco_odbc_format(T, C, V, VF),
-	format_to_codes(WCo, '~s ~w ~w=~s', [WC, WP, N, VF]).
+	format_to_codes(WCo, '~s ~w o.~w=~s', [WC, WP, N, VF]).
 
 % -- SQL ORDER BY generation for individual variables -------------------------
 %
@@ -284,7 +284,7 @@ isco_order_clause([N=O|Os], OP, OPo, OC, OCo) :-
 
 isco_order_var(none,  _, OP, OP,  OC, OC) :- !.
 isco_order_var(ORDER, N, OP, ",", OC, OCo) :-
-	format_to_codes(OCo, '~s~s ~w ~w', [OC, OP, N, ORDER]).
+	format_to_codes(OCo, '~s~s o.~w ~w', [OC, OP, N, ORDER]).
 
 % -- Transmit default values --------------------------------------------------
 
@@ -353,7 +353,7 @@ isco_var_list_to_select(VARLIST, SELECT) :-
 
 isco_var_list_to_select([], _, SEL, SEL).
 isco_var_list_to_select([f(FNAME,_,_)|Fs], SPF, SELECT, SELECTo) :-
-	format_to_codes(SELECTi, "~s~s~w", [SELECT, SPF, FNAME]),
+	format_to_codes(SELECTi, "~s~so.~w", [SELECT, SPF, FNAME]),
 	isco_var_list_to_select(Fs, ", ", SELECTi, SELECTo).
 
 
@@ -368,8 +368,7 @@ isco_be_get_arg(0, _, P, CH, SH, OTn, CONV, V, T, _) :-
 isco_be_get_arg(_, N, _, CH, SH, OTn, CONV, V, T, VL) :-
 	memberchk(f(N,PX,_), VL),
 	!,
-	PX1 is PX+1,		% FIXME: skip OID (extra first arg)
-	isco_be_get_data(CH, SH, PX1, OTn, Vx),
+	isco_be_get_data(CH, SH, PX, OTn, Vx),
 	( CONV=yes -> isco_odbc_conv(T, Vx, V) ; V=Vx ).
 isco_be_get_arg(_, _, _, _, _, _, _, _, _, _).
 
@@ -378,7 +377,16 @@ isco_be_get_arg(_, _, _, _, _, _, _, _, _, _).
 
 isco_be_exec(BE, Q, R) :- BE :> exec(Q, R).
 isco_be_fetch(BE, R) :- BE :> fetch(R).
+isco_be_ntuples(BE, R, N) :- BE :> ntuples(R, N).
+isco_be_oid(BE, R, O) :- BE :> oid(R, O).
 isco_be_get_data(BE, R, X, T, V) :- BE :> get_data(R, X, T, V).
+
+
+% -- Check for adequate revision ----------------------------------------------
+
+isco_check_revision(R) :- isco_revision(R), !.
+isco_check_revision(R) :- throw(wrong_isco_version_needs(R)).
+
 
 % -- Rewrite an argument LIST as an argument TUPLE ----------------------------
 
@@ -574,6 +582,10 @@ isco_tsort_level(M, PX, N, X) :-
 % -----------------------------------------------------------------------------
 
 % $Log$
+% Revision 1.7  2003/03/05 01:12:41  spa
+% support oid= and instanceOf= arguments.
+% support redefinition of arguments, namely for default values.
+%
 % Revision 1.6  2003/02/26 19:21:05  spa
 % isco_be_get_arg/10: offset by 1 to account for OID...
 %

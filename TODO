@@ -23,8 +23,8 @@ Partly done.  Still need to define new datatype.
 *** instance OID
 All selects, updates, deletes (and inserts?) are to be of the form:
  ... SELECT oid, ... FROM ...;
-the OID will be stored in a gprolog global variable, specific to each link; suggestion: use 
-*** class (table) OID / classOf operator
+-> done for selects
+** class (table) OID / classOf operator
 Use: SELECT relname from pg_class, CL where CL.tableoid=pg_class.oid;
 ISCO syntax?
 *** Use something like this:
@@ -34,6 +34,11 @@ or
 SELECT relname from pg_class c, pix p where p.oid=16568 and p.tableoid=c.oid;
 (on-demand, after a regular oid-toting query)
 (after that, use isco_classtype(ISCOCLASS, external(DB, PGCLASS)).)
+*** ISCO Syntax:
+extra argument: instanceOf=CLASSNAME
+*** treated special, value is obtained as argument 2:
+select o.oid, c.relname as instanceOf, o.* from CLASS o, pg_class c where c.oid=o.tableoid
+
 ** Do ACR thing
 
 * Big things

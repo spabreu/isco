@@ -1,20 +1,17 @@
-This Package is now in Debian form in the main CVS repository.
-
-This package was initially debianized by Milan Zamazal <pdm@debian.org> on
-Mon, 29 Mar 1999 21:45:18 +0200.
+This Package is in Debian form in the main CVS repository.
 
 It was downloaded from
-http://pauillac.inria.fr/~diaz/gnu-prolog .
+http://dev.si.uevora.pt/isco/
 
 Copyright:
 
-  Copyright (C) 1999 Daniel Diaz
+  Copyright (C) 1998-2003 Salvador Abreu
 
-  GNU Prolog is free software; you can redistribute it and/or modify it
+  ISCO is free software; you can redistribute it and/or modify it
   under the terms of the GNU General Public License as published by the
   Free Software Foundation; either version 2, or any later version.
 
-  GNU Prolog is distributed in the hope that it will be useful, but
+  ISCO is distributed in the hope that it will be useful, but
   WITHOUT ANY WARRANTY; without even the implied warranty of
   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
   General Public License for more details.

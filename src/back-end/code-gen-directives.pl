@@ -28,6 +28,8 @@
 
 emit :-
 	isco_lib_directory(D),
+	isco_revision(REV),
+	format(':- initialization(isco_check_revision(~q)).~n', [REV]),
 	isco_prolog_code(ST), nl,
 	format(':- include(''~w/ops.pl'').~n', [D]),
 	format(':- discontiguous(isco_setup_connection/2).~n~n', []).
@@ -54,8 +56,12 @@ isco_prolog_specials([_|Ss]) :- isco_prolog_specials(Ss).
 % -----------------------------------------------------------------------------
 
 % $Log$
-% Revision 1.1  2003/01/06 14:27:17  spa
-% Initial revision
+% Revision 1.2  2003/03/05 01:12:41  spa
+% support oid= and instanceOf= arguments.
+% support redefinition of arguments, namely for default values.
+%
+% Revision 1.1.1.1  2003/01/06 14:27:17  spa
+% Imported into CVS
 %
 
 % Local Variables:

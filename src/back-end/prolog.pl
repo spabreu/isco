@@ -59,15 +59,16 @@ isco_prolog_class(CNAME, NET) :-		% external DB classes
 	ol_memberchk(external(XID, XNAME), As),
 	lookup(NET, fields, fields=Fs),
 	!,
-	ol_length(Fs, NFs),
+	isco_nondupe_fields(Fs, FF),
+	ol_length(FF, NFs),
 	isco_prolog_class_header(external, CNAME, NET),
 	( lookup(ST, external(XID), external(_)=XDEF) ->
 	    atom_concat('isco_', XID, ISCO_XID),
-	    isco_prolog_external_class(CNAME, NFs, Fs, XDEF, ISCO_XID, XNAME),
+	    isco_prolog_external_class(CNAME, NFs, FF, XDEF, ISCO_XID, XNAME),
 	    isco_prolog_class_inheritance(CNAME, NET, XDEF),
-	    isco_prolog_code_update(CNAME, NET, NFs, Fs),
-	    isco_prolog_code_delete(CNAME, NET, NFs, Fs),
-	    isco_prolog_code_insert(CNAME, NET, NFs, Fs)
+	    isco_prolog_code_update(CNAME, NET, NFs, FF),
+	    isco_prolog_code_delete(CNAME, NET, NFs, FF),
+	    isco_prolog_code_insert(CNAME, NET, NFs, FF)
 	; format("error: external database ~w not declared.~n", [XID]),
 	  fail ).
 
@@ -82,13 +83,15 @@ isco_prolog_class(CNAME, NET) :-		% computed classes
 isco_prolog_class(CNAME, NET) :-		% regular class
 	lookup(NET, fields, fields=Fs),
 	!,
-	ol_length(Fs, NFs),
+	isco_nondupe_fields(Fs, FF),
+	ol_length(FF, NFs), !,
 	isco_prolog_class_header(regular, CNAME, NET),
 	isco_prolog_internal_class(CNAME, NFs, Fs),
 	isco_prolog_class_inheritance(CNAME, NET, isco),
-	isco_prolog_code_update(CNAME, NET, NFs, Fs),
-	isco_prolog_code_delete(CNAME, NET, NFs, Fs),
-	isco_prolog_code_insert(CNAME, NET, NFs, Fs).
+	isco_prolog_code_update(CNAME, NET, NFs, FF),
+	isco_prolog_code_delete(CNAME, NET, NFs, FF),
+	isco_prolog_code_insert(CNAME, NET, NFs, FF),
+	format('\n%% [end ~w]\n', [CNAME]).
 
 % -- Generate code for general clauses and directives -------------------------
 
@@ -123,9 +126,10 @@ isco_prolog_class_header(TYPE, CNAME, NET) :-
 
 isco_prolog_class_header_fields(Fs) :- var(Fs), !.
 isco_prolog_class_header_fields([]) :- !.
-isco_prolog_class_header_fields([f(NUM,NAME,TYPE,_)|Fs]) :-
+isco_prolog_class_header_fields([f(NUM,NAME,TYPE,ATTRs)|Fs]) :-
 	isco_prolog_class_header_fields(Fs), !,
-	format("%%    ~2w. ~w: ~w.~n", [NUM, NAME, TYPE]).
+	( lookup(ATTRs, dupe, dupe=yes) -> true
+	;   format("%%    ~2w. ~w: ~w.~n", [NUM, NAME, TYPE]) ).
 
 
 isco_prolog_computed_class(EOR) :- var(EOR), !.
@@ -149,6 +153,10 @@ isco_prolog_internal_class(CNAME, NFs, Fs) :-
 	BODY1 = (isco_connection(CH), HEAD1),
 	append(HEAD0_, [_], [HF|HA]), HEAD0 =.. HEAD0_,
 	append(HEAD0_, [[]+0], BODY0_), BODY0 =.. BODY0_,
+	HEAD0 =.. [HPx, _, _ | HAx],	% includes oid and instanceOf
+	HEADx =.. [HPx | HAx],
+	BODYx = HEAD0,
+	portray_clause((HEADx :- BODYx)), nl,
 	portray_clause((HEAD0 :- BODY0)), nl,
 	portray_clause((HEAD :- BODY1)), nl,
 	portray_clause((HEAD1 :- BODY)), nl.
@@ -163,7 +171,8 @@ isco_prolog_class_head(CNAME, NFs, Fs, HEAD, HVARs, OC_VAR) :-
 isco_prolog_ichf(EOF, _, _) :- var(EOF), !.
 isco_prolog_ichf([], _, _).
 isco_prolog_ichf([f(NUM,NAME,TYPE,_)|Fs], HEAD, HVARs) :-
-	insert(HVARs, NUM=f(VAR,NAME,TYPE)),
+	( lookup(HVARs, NUM, NUM=f(VAR,NAME,TYPE)) -> true
+	; insert(HVARs, NUM=f(VAR,NAME,TYPE)) ),
 	arg(NUM, HEAD, VAR), !,
 	isco_prolog_ichf(Fs, HEAD, HVARs).
 
@@ -174,34 +183,40 @@ isco_prolog_class_body(Vs, RNAME, HEAD, GOAL, CH, OC_VAR+MASK) :-
 	  isco_auto_inheritance(DBTYPE, DESCEND) -> true ; DESCEND='' ),
 	GOAL = (
 	  ( MASK = 0 ->
-	     format_to_codes(SQLin, "select oid, * from ~w~w", [RNAME, DESCEND])
-	  ; isco_mask_to_var_list(HEAD, _, MASK, VL),
-	    isco_var_list_to_select(VL, SELf),
-	    format_to_codes(SQLin, "select oid, ~s from ~w~w", [SELf, RNAME, DESCEND]) ),
+	     format_to_codes(SQLin, 'select o.oid, c.relname as instanceOf, o.* from ~w~w o, pg_class c where c.oid=o.tableoid', [RNAME, DESCEND])
+	  ; % -- exclude oid and instanceOf from select: they're here already.
+	    MASK1 is MASK /\ \6, % 6 is: 2 forced args (2^N-1)<<1
+	    MASK2 is MASK \/ 6,
+	    isco_mask_to_var_list(HEAD, _, MASK2, VL),
+	    isco_mask_to_var_list(HEAD, _, MASK1, VL1),
+	    isco_var_list_to_select(VL1, SELf),
+	    format_to_codes(SQLin, 'select o.oid, c.relname as instanceOf, ~s from ~w~w o, pg_class c where c.oid=o.tableoid', [SELf, RNAME, DESCEND]) ),
 	  G1 ),
 	isco_where_clause(Vs, CH, G1, G2, SQLin, SQLout),
 	G2 = (append(SQLout, OC_VAR, SQLfinal),
 	      ( g_read(isco_debug_sql, 1) ->
 		  format('sql: ~s~n', [SQLfinal]) ; true ),
 	      isco_be_exec(CH, SQLfinal, SH),
+	      isco_be_ntuples(CH, SH, NT),
+	      g_assign(isco_ntuples, NT),
 	      isco_be_fetch(CH, SH),
 	      BODY),
-	isco_prolog_class_body_fields(Vs, BODY, CH, SH, VL, MASK).
+	isco_prolog_class_body_fields(Vs, BODY, CH, SH, VL, MASK2).
 
 isco_prolog_class_body_fields(EOV, true, _, _, _, _) :- var(EOV), !.
 isco_prolog_class_body_fields([], true, _, _, _, _).
 isco_prolog_class_body_fields([P=f(V,N,T)|VARs], GOAL, CH, SH, VL, MASK) :-
 	isco_odbc_type(T, OT), odbc_type(OT, OTn),
 	( isco_odbc_conv(T, _, _) -> CONV=yes ; CONV=no ),
-	PX is P+1,		% FIXME: skip OID (extra first arg)
-	GOAL = (isco_be_get_arg(MASK, N, PX, CH, SH, OTn, CONV, V, T, VL), Gs),
+	GOAL = (isco_be_get_arg(MASK, N, P, CH, SH, OTn, CONV, V, T, VL), Gs),
 	isco_prolog_class_body_fields(VARs, Gs, CH, SH, VL, MASK).
 
 
 % -- SQL WHERE clause generation ----------------------------------------------
 
 isco_where_clause(Vs, C, Gin, Gout, SQLin, SQLout) :-
-	isco_where_clause(Vs, C, 'where', _, Gin, Gout, SQLin, SQLout).
+	isco_where_clause(Vs, C, 'and', _, Gin, Gout, SQLin, SQLout).
+%	isco_where_clause(Vs, C, 'where', _, Gin, Gout, SQLin, SQLout).
 
 
 isco_where_clause(Vs, _, P, P, G, G, WC, WC) :- var(Vs), !.
@@ -222,6 +237,10 @@ isco_prolog_external_class(CNAME, NFs, Fs, _XDEF, XID, XNAME) :-
 	BODY1 = (isco_connection(XID, CH), HEAD1),
 	append(HEAD0_, [_], [HF|HA]), HEAD0 =.. HEAD0_,
 	append(HEAD0_, [[]+0], BODY0_), BODY0 =.. BODY0_,
+	HEAD0 =.. [HPx, _, _ | HAx],	% includes oid and instanceOf
+	HEADx =.. [HPx | HAx],
+	BODYx = HEAD0,
+	portray_clause((HEADx :- BODYx)), nl,
 	portray_clause((HEAD0 :- BODY0)), nl,
 	portray_clause((HEAD :- BODY1)), nl,
 	portray_clause((HEAD1 :- BODY)), nl.
@@ -263,24 +282,31 @@ isco_prolog_external(postgres(DB, HOST), ISCO_NAME, HEAD, BODY) :-
 % -- Generate code to insert a new tuple --------------------------------------
 
 isco_prolog_code_insert(CNAME, NET, NFs, Fs) :-
+%%DBG	format('%% [~w]\n', [isco_prolog_code_insert(CNAME,NET,NFs,Fs)]), %%DBG
 	lookup(NET, atrib, atrib=As),
 	\+ ol_memberchk(static, As),		% only static is out...
 	( ol_memberchk(external(XID, XNAME), As) ; XID=isco, XNAME=CNAME ),
 	!,
+%	isco_skip_fields(Fs, skip=yes, Fs1),	% w/o instanceOf
+	isco_skip_fields(Fs, hidden=yes, Fs2),	% w/o instanceOf and oid
+%%DBG	format('%% [isco_skip_fields IN: ~w]\n', [Fs]), %%DBG
+%%DBG	format('%% [isco_skip_fields OUT1: ~w]\n', [Fs1]), %%DBG
+%%DBG	format('%% [isco_skip_fields OUT2: ~w]\n', [Fs2]), %%DBG
+%	NFs1 is NFs - 1,			% w/o instanceOf
 	atom_concat('isco_insert__', CNAME, ISCO_NAME),
 	functor(HEAD, ISCO_NAME, NFs),
-	HEAD =.. [HF | HA], HEAD1 =.. [HF, CH | HA],
+	HEAD =.. [HF | HA], HEAD1 =.. [HF, CH | HA], % tack on channel
 	( XID=isco ->
 	    BODY1 = (isco_connection(CH), HEAD1)
 	;   atom_concat('isco_', XID, ISCO_XID),
 	    BODY1 = (isco_connection(ISCO_XID, CH), HEAD1) ),
-	lookup(NET, fields, fields=FLIST),
-	isco_prolog_class_argnames(FLIST, [], ANLIST),
+	isco_prolog_class_argnames(Fs2, [], ANLIST),
 	XNAME_ARGS =.. [XNAME | ANLIST],
-	format_to_codes(Q0, "insert into ~w values", [XNAME_ARGS]),
+	format_to_codes(Q0, 'insert into ~w values', [XNAME_ARGS]),
 	BODY = (QPFX = Q0, BODY2),
 	reverse(Fs, RFs),			% *CROCK*
-	isco_prolog_code_insert_body(CNAME,NET,RFs,_,QPFX,HEAD,BODY2,CH),
+	arg(1,HEAD,OID),			% **OBNOXIOUS CROCK**
+	isco_prolog_code_insert_body(CNAME,NET,RFs,_,QPFX,HEAD,BODY2,CH,OID),
 	nl,
 	portray_clause((HEAD :- BODY1)), nl,
 	portray_clause((HEAD1 :- BODY)), nl.
@@ -288,13 +314,14 @@ isco_prolog_code_insert(_, _, _, _, _).
 
 
 
-isco_prolog_code_insert_body(_CNAME, _NET, [], _, Q, _HEAD, BODY, CH) :-
+isco_prolog_code_insert_body(_CN, _NET, [], _, Q, _HEAD, BODY, CH, OID) :-
 	BODY = (append(Q, ")", QF),
-		( g_read(isco_debug_sql, 1) ->
-		    format('sql: ~s~n', [QF]) ; true ),
-		isco_be_exec(CH, QF, _SH)).
+		   ( g_read(isco_debug_sql, 1) ->
+		       format('sql: ~s~n', [QF]) ; true ),
+		   isco_be_exec(CH, QF, R),
+		   isco_be_oid(CH, R, OID)).
 
-isco_prolog_code_insert_body(CNAME, NET, [F|Fs], P, Q, HEAD, BODY, CH) :-
+isco_prolog_code_insert_body(CN, NET, [F|Fs], P, Q, HEAD, BODY, CH, O) :-
 	F=f(POS,FNAME,TYPE,ATTRs),
 	arg(POS, HEAD, Vin),
 	( ol_memberchk(default(nextval(SEQ)), ATTRs) ->
@@ -303,13 +330,17 @@ isco_prolog_code_insert_body(CNAME, NET, [F|Fs], P, Q, HEAD, BODY, CH) :-
 	    BODY = (BODY0,
 		    ( var(Vin) -> SEQ_CURR_GOAL ; true ) )
 	; BODY = BODY0 ),
-	BODY0 = (isco_insert_arg_default(CNAME, FNAME, Vin, Vout),
-		 isco_odbc_format(TYPE, Vout, V),
-		 BODY2),
-	( var(P) ->
-	    BODY2 = (format_to_codes(Qx, '~s (~s', [Q, V]), BODY1), P=comma
-	;   BODY2 = (format_to_codes(Qx, '~s, ~s', [Q, V]), BODY1) ),
-	isco_prolog_code_insert_body(CNAME, NET, Fs, P, Qx, HEAD, BODY1, CH).
+	( ol_memberchk(hidden=yes, ATTRs) ->
+	    BODY0 = BODY1,
+	    Qx = Q
+	;
+	    BODY0 = (isco_insert_arg_default(CN, FNAME, Vin, Vout),
+			isco_odbc_format(TYPE, Vout, V),
+			BODY2),
+	    ( var(P) ->
+		BODY2 = (format_to_codes(Qx, '~s (~s', [Q, V]), BODY1), P=comma
+	    ;	BODY2 = (format_to_codes(Qx, '~s, ~s', [Q, V]), BODY1) ) ),
+	isco_prolog_code_insert_body(CN, NET, Fs, P, Qx, HEAD, BODY1, CH, O).
 
 % -- Generate code to delete a tuple ------------------------------------------
 
@@ -462,6 +493,10 @@ isco_update_where(N, [f(P,FN,T,_A)|Vs], C, H, PF, Gin, Gout, WCin, WCout) :-
 isco_prolog_class_argnames(EOL, L, L) :- var(EOL), !.
 isco_prolog_class_argnames([],  L, L) :- !.
 isco_prolog_class_argnames([f(_,NAME,_,_)|FL], Lin, Lout) :-
+	ol_memberchk(f(_,NAME,_,_), FL), !, % ignore dupes (override...)
+	isco_prolog_class_argnames(FL, Lin, Lout).
+
+isco_prolog_class_argnames([f(_,NAME,_,_)|FL], Lin, Lout) :-
 	isco_prolog_class_argnames(FL, [NAME|Lin], Lout).
 
 
@@ -575,6 +610,10 @@ isco_prolog_sequence(NAME, ATTRs) :-
 % -----------------------------------------------------------------------------
 
 % $Log$
+% Revision 1.6  2003/03/05 01:12:41  spa
+% support oid= and instanceOf= arguments.
+% support redefinition of arguments, namely for default values.
+%
 % Revision 1.5  2003/02/28 22:24:17  spa
 % make clean limpa mesmo :)
 %

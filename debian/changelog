@@ -1,3 +1,15 @@
+isco (2.1-1) unstable; urgency=low
+
+  * Allow for oid= and instanceOf= attributes for all classes.
+  * Count tuples and store the result in the 'isco_ntuples' global
+    variable.
+  * Handle repeated declarations of the same argument (eg. in subclasses
+    to assign different defaults.)
+  * Check for identical ISCO revision upon start-up.  Bark upon failure.
+  * make clean: *really* do it. sigh.
+
+ -- Salvador Abreu <spa@debian.org>  Tue,  4 Mar 2003 22:44:34 +0000
+
 isco (2.0-7) unstable; urgency=low
 
   * src/back-end/sql-schema.pl: isco_schema_attr/4: first clause had an
