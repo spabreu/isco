@@ -143,16 +143,21 @@ isco_prolog_class_header_fields([f(NUM,NAME,TYPE,ATTRs)|Fs]) :-
 
 
 isco_prolog_computed_class_prefix([rule(select,HEAD,_)|_], CNAME) :-
-	HEAD =.. [PNAME, _OID, CNAME | ARGS],
-	HEAD0 =.. [PNAME | ARGS],
-	portray_clause((HEAD0 :- HEAD)), nl.
+	HEAD =.. [PNAME, OID, CNAME | ARGS0],
+	HEAD0 =.. [PNAME | ARGS0],
+	append(ARGS0, [_], ARGS),		% add fake ORDER+MASK
+	BODY =.. [PNAME, OID, CNAME | ARGS],
+	portray_clause((HEAD0 :- BODY)), nl.
 isco_prolog_computed_class_prefix(_, _).
 
 
 isco_prolog_computed_class(EOR, _) :- var(EOR), !.
 isco_prolog_computed_class([], _).
 
-isco_prolog_computed_class([rule(select, HEAD, BODY) | Rs], select) :- !,
+isco_prolog_computed_class([rule(select, HEAD0, BODY) | Rs], select) :- !,
+	HEAD0 =.. [FUNC|ARGS0],
+	append(ARGS0, [_], ARGS),		% add fake ORDER+MASK
+	HEAD =.. [FUNC|ARGS],
 	portray_clause((HEAD :- BODY)), nl,
 	isco_prolog_computed_class(Rs, select).
 
@@ -165,7 +170,8 @@ isco_prolog_computed_class([rule(insert, HEAD0, BODY) | Rs], insert) :- !,
 	isco_prolog_computed_class(Rs, insert).
 
 isco_prolog_computed_class([rule(delete, HEAD0, BODY) | Rs], delete) :- !,
-	HEAD0 =.. [CNAME | ARGS],
+	HEAD0 =.. [CNAME | ARGS0],
+	append(ARGS0, [_], ARGS),		% add fake ORDER+MASK
 	atom_concat('isco_delete__', CNAME, PNAME),
 	HEAD =.. [PNAME | ARGS],
 	arg(2, HEAD, CNAME),
@@ -729,6 +735,9 @@ isco_prolog_sequence(NAME, ATTRs) :-
 % -----------------------------------------------------------------------------
 
 % $Log$
+% Revision 1.17  2003/04/16 08:45:20  spa
+% Add fake ORDER+MASK arguments to computed select and delete clauses.
+%
 % Revision 1.16  2003/04/15 15:05:10  spa
 % Many changes, mostly to do with:
 % - inheritance (preliminary work on a cleaner way of doing it)
