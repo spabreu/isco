@@ -63,6 +63,16 @@ DB="\
 	$PLXDIR/odbc/interface.pl \
 	$PLXDIR/odbc/module.o"
 
+
+GPROLOG_LDAP="\
+        $PLXDIR/ldap/interface.pl \
+        $PLXDIR/ldap/module.o"
+
+LDAP_CX=`find $PLXDIR/ldap-cx -name \*.o | xargs`
+
+LDAP="$GPROLOG_LDAP $LDAP_CX -L -lldap"
+
+
 SQLGENO="\
 	$LIBDIR/sql-build.o"
 
@@ -95,6 +105,7 @@ PILLOW=
 CGIMAIN=
 GPLCTOP=
 LIBPHP=
+LIBLDAP=
 DB=isco
 while [ ! -z "$1" ]; do
   case $1 in
@@ -113,6 +124,8 @@ may be:
   -p                  Produce php-ready executable
 
   --pillow            Include the PiLLoW HTML/XML library
+
+  --ldap              Include LDAP support
 
   --cgi               Produce cgi-bin executable
 
@@ -167,6 +180,10 @@ EOF
 
   --pillow)
     PILLOW=$PLXDIR/pillow/module.o;
+    shift;;
+
+  --ldap)
+    LIBLDAP=$LDAP;
     shift;;
 
   --cgi)
@@ -247,8 +264,8 @@ done
 
 [ -n "$VERBOSE" ] && \
   echo 1>&2 \
-    $GPLC $GPLCTOP -o $OUTPUT $PREFIX $CGIMAIN $FILES $SUFFIX $PILLOW $LIBPHP $LDFLAGS
-$GPLC $GPLCTOP -o $OUTPUT $PREFIX $CGIMAIN $FILES $SUFFIX $PILLOW $LIBPHP $LDFLAGS
+    $GPLC $GPLCTOP -o $OUTPUT $PREFIX $CGIMAIN $FILES $SUFFIX $PILLOW $LIBLDAP $LIBPHP $LDFLAGS
+$GPLC $GPLCTOP -o $OUTPUT $PREFIX $CGIMAIN $FILES $SUFFIX $PILLOW $LIBLDAP $LIBPHP $LDFLAGS
 
 [ -n "$CGIMAIN" ] && rm -f $CGIMAIN
 
