@@ -502,7 +502,7 @@ isco_field_numbers([F|Fs], N, KF, CNAME) :-
 	( memberchk(f(K,NAME,TYPE,ATTRs2), Fs) ->
 	    KFi=K,				% repeated field (default?)
 	    KF=N1,
-	    member(dupe=yes, ATTRs),		% don't bail out on dupes!
+	    member(dupe=yes, ATTRs),		% FIXME: don't barf on dupes!
 	    member(dupedIn=DUPEDIN, ATTRs2),
 	    insert(DUPEDIN, CNAME)		% remember WHO redefines it.
 	;

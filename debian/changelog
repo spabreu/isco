@@ -1,3 +1,29 @@
+isco (2.1-11) unstable; urgency=low
+
+  * back-end/prolog.pl: in the "update" predicate generation: put "such
+    that" goal *before* creating the set part string, as it may influence
+    variables which occur in the set part.
+
+ -- Salvador Abreu <spa@debian.org>  Wed, 12 Mar 2003 12:02:56 +0000
+
+isco (2.1-10) unstable; urgency=low
+
+  * new -d/--db flag to specify ISCO default database name.
+  * back-end/sql.pl: new predicate build/0, like emit/0 but it actually
+    performs the actions.
+  * odbc back-end: implement ntuples/2 and bail out on oid/2.
+    (closes: #19).
+  * back-end/{prolog,sql}.pl: sql debug provides info on channel being
+    used.
+  * back-end/prolog.pl: isco_prolog_class_inheritance_one/4: properly
+    count subclass fields.
+  * apt.pl: when numbering, allow for duplicates to occur more than
+    once...
+  * cleaned up some unit names, in preparation for the specialized
+    back-ends.
+
+ -- Salvador Abreu <spa@debian.org>  Tue, 11 Mar 2003 23:56:00 +0000
+
 isco (2.1-9) unstable; urgency=low
 
   * create SQL primary keys in subclasses for object-relational back-ends.
