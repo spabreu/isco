@@ -22,7 +22,7 @@
 %  Public License can be found in `/usr/share/common-licenses/GPL'.
 % -----------------------------------------------------------------------------
 
-:- unit(isco_schema(ST)).
+:- unit(schema(ST)).
 
 % == Prolog code generation (schema) for ISCO =================================
 
@@ -231,6 +231,9 @@ isco_schema_pattern(index, CNAME, f(_,FNAME,_,ATTRs),
 % -----------------------------------------------------------------------------
 
 % $Log$
+% Revision 1.4  2003/03/12 19:05:55  spa
+% Simplified unit name...
+%
 % Revision 1.3  2003/03/05 01:12:41  spa
 % support oid= and instanceOf= arguments.
 % support redefinition of arguments, namely for default values.
