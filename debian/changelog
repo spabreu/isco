@@ -1,3 +1,26 @@
+isco (2.4-3) unstable; urgency=low
+
+  * utils/scripts/isco.in: new flag -L as in gprolog.
+  * utils/scripts/isco.in: force heap and trail sizes over the default.
+
+ -- Salvador Abreu <spa@di.uevora.pt>  Tue, 23 Sep 2003 10:03:22 +0100
+
+isco (2.4-2) unstable; urgency=low
+
+  * runtime/runtime.pl, back-end/prolog.pl: try to avoid creating atoms
+    when reading in terms.
+
+ -- Salvador Abreu <spa@di.uevora.pt>  Sun, 21 Sep 2003 02:15:39 +0100
+
+isco (2.4-1) unstable; urgency=low
+
+  * now using gprolog-cx 1.2.18 (which deals much better with longish I/O)
+  * added initial support for computed mutable classes (update rules)
+  * bunch of new code in apt.pl to support update rules and remain
+    compatible with existing code.
+
+ -- Salvador Abreu <spa@di.uevora.pt>  Thu, 14 Aug 2003 15:06:13 +0100
+
 isco (2.3-6) unstable; urgency=low
 
   * don't barf on variables occurring in arguments lists when using
