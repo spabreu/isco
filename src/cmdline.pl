@@ -45,9 +45,13 @@ action(_, []) :-
 
 action(FILEs, [compile]) :-
 	!,
-	( g_read(isco_default_database, DBNAME), % preload symbol table...
-	  DBNAME \= 0 ->
-	    insert(ST, external(isco)=postgres(DBNAME))
+	( g_read(isco_default_database, DBSPEC), % preload symbol table...
+	  DBSPEC \= 0 ->
+	    ( sub_atom(DBSPEC, _, _, _, ':') -> % is it 'host:db'?
+		read_term_from_atom(DBSPEC, HOST:DB, [end_of_term(eof)]),
+		insert(ST, external(isco)=postgres(DB, HOST))
+	    ;
+		insert(ST, external(isco)=postgres(DBSPEC)) )
 	; insert(ST, external(isco)=postgres(isco)) ),
 	!,
 	isco_load_files(FILEs, [], PROGRAM),
@@ -185,6 +189,9 @@ isco_php_lib('-L -lpq').
 
 
 % $Log$
+% Revision 1.5  2003/06/16 10:43:47  spa
+% Implement -d host:db syntax.
+%
 % Revision 1.4  2003/04/15 15:03:06  spa
 % - error messages to stderr (new "err" stream alias...)
 %

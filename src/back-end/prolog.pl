@@ -342,14 +342,14 @@ isco_prolog_external(odbc(DB,_METHOD), ISCO_NAME, HEAD, BODY) :-
 
 isco_prolog_external(postgres(DB), ISCO_NAME, HEAD, BODY) :-
 	HEAD=isco_setup_connection(ISCO_NAME, pg(H)),
-	name(DB, DBCODES),
-	BODY=pq_open("", 0, DBCODES, H).
+	BODY=( 	name(DB, DBCODES),
+		pq_open("", 0, DBCODES, H) ).
 
 isco_prolog_external(postgres(DB, HOST), ISCO_NAME, HEAD, BODY) :-
 	HEAD=isco_setup_connection(ISCO_NAME, pg(H)),
-	name(DB, DBCODES),
-	name(HOST, HOSTCODES),
-	BODY=pq_open(HOSTCODES, 0, DBCODES, H).
+	BODY = (   name(DB, DBCODES),
+		   name(HOST, HOSTCODES),
+		   pq_open(HOSTCODES, 0, DBCODES, H) ).
 
 isco_prolog_external([transport=TRANSPORT|_], ISCO_NAME, HEAD, BODY) :-
 	isco_prolog_external(TRANSPORT, ISCO_NAME, HEAD, BODY), !.
@@ -736,6 +736,9 @@ isco_prolog_sequence(NAME, ATTRs) :-
 % -----------------------------------------------------------------------------
 
 % $Log$
+% Revision 1.19  2003/06/16 10:42:15  spa
+% Implement -d host:db syntax.
+%
 % Revision 1.18  2003/05/24 14:32:10  spa
 % Quote class names in SQL queries.
 %
