@@ -23,8 +23,8 @@ isco_prolog_class_body(Vs, CNAME, RNAME, HEAD, GOAL, CH, OC_VAR+MASK) :-
 	functor(HEAD,CNAME,_),
 	GOAL = (
 	  ( MASK = 0 -> NMASK = -1 ; NMASK=MASK ),
-	  MASK1 is NMASK /\ \4, % 4 is: forced args (2^N-1)<<1
-	  MASK2 is NMASK \/ 4,	% force only oid (leave out instanceOf)
+	  MASK1 is NMASK /\ \6, % 4 is: forced args (2^N-1)<<1
+	  MASK2 is NMASK \/ 6,	% force only oid (leave out instanceOf)
 	  isco_mask_to_var_list(HEAD, _, MASK2, VL),
 	  isco_mask_to_var_list(HEAD, _, MASK1, VL1),
 	  reverse(VL1, VL1r),
@@ -52,7 +52,8 @@ isco_prolog_class_body_fields([_=f(V,N,_)|VARs], GOAL, CH, SH, VL, MASK, CN) :-
 isco_prolog_class_body_fields([P=f(V,N,T)|VARs], GOAL, CH, SH, VL, MASK, CN) :-
 	isco_odbc_type(T, OT), odbc_type(OT, OTn),
 	( isco_odbc_conv(T) -> CONV=yes ; CONV=no ),
-	GOAL = (isco_be_get_arg(MASK, N, P, CH, SH, OTn, CONV, V, T, VL), Gs),
+	( P > 1 -> PX is P-1 ; PX=P ),
+	GOAL = (isco_be_get_arg(MASK, N, PX, CH, SH, OTn, CONV, V, T, VL), Gs),
 	isco_prolog_class_body_fields(VARs, Gs, CH, SH, VL, MASK, CN).
 
 
