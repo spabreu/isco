@@ -1,7 +1,6 @@
 TODO:
 
-- delete: take care of oid= and instanceOf=
-- delete: runtime interface
+- delete: transmit remaining args to caller... (mimic select?)
 - update: take care of oid= and instanceOf=
 - update: runtime interface
 
@@ -11,3 +10,5 @@ DONE:
 - insert: take care of oid= and instanceOf=
 - insert: pick up appropriate default when using inheritance
 - insert: runtime interface
+- delete: runtime interface
+- delete: take care of oid= and instanceOf=

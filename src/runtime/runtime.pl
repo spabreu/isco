@@ -149,6 +149,7 @@ isco_odbc_type(bool,     integer).
 isco_odbc_type(date,     timestamp).
 isco_odbc_type(dt,       timestamp).
 isco_odbc_type(datetime, timestamp).
+isco_odbc_type(term,     varchar).
 
 isco_odbc_generated_type(text,      text).
 isco_odbc_generated_type(float,     real).
@@ -159,15 +160,27 @@ isco_odbc_generated_type(int,       integer).
 isco_odbc_generated_type(date,      timestamp).
 isco_odbc_generated_type(dt,        timestamp).
 isco_odbc_generated_type(datetime,  timestamp).
-
+isco_odbc_generated_type(term,      text).
 
 % -- ISCO/ODBC type conversions -----------------------------------------------
 %
 % isco_odbc_conv(TYPE, PROLOG_VALUE, EXTERNAL_VALUE)
 %
 
+isco_odbc_conv(bool).
+isco_odbc_conv(term).
+
 isco_odbc_conv(bool, 1, TRUE)  :- memberchk(TRUE,  [true,  t]).
 isco_odbc_conv(bool, 0, FALSE) :- memberchk(FALSE, [false, f]).
+
+isco_odbc_conv(term, [], []) :- !.
+isco_odbc_conv(term, STRING, TERM) :-
+	catch( read_term_from_atom(STRING, TERM,
+				   [syntax_error(fail), end_of_term(eof)]),
+	       _ERROR,
+	       TERM=STRING ).
+%%DBG	format("~q~n", [isco_odbc_conv(term, TERM, STRING)]).
+
 
 % -- ISCO/ODBC formats --------------------------------------------------------
 %
@@ -190,6 +203,11 @@ isco_odbc_format(text, _, S, SS) :- !,
 	isco_odbc_text_format(SN, SX),		% mung quotes...
 	format_to_codes(SS, "'~s'", [SX]).
 
+isco_odbc_format(term, _, S, SS) :- !,
+	format_to_codes(SN, "~k", [S]),
+	isco_odbc_text_format(SN, SX),		% mung quotes...
+	format_to_codes(SS, "'~s'", [SX]).
+
 isco_odbc_format(int, _, nextval(SEQ), NVS) :- !,
 	format_to_codes(NVS, "nextval ('~w')", [SEQ]).
 
@@ -207,6 +225,27 @@ isco_odbc_text_format([34|A], [92, 34|B]) :- !,	% " -> \"
 	isco_odbc_text_format(A, B).
 isco_odbc_text_format([X|A], [X|B]) :-		% default
 	isco_odbc_text_format(A, B).
+
+isco_odbc_text_format_no_percent([], []).
+isco_odbc_text_format_no_percent([39, 37, 39|A], [37|B]) :- !, % '%' -> %
+	isco_odbc_text_format_no_percent(A, B).
+isco_odbc_text_format_no_percent([39|A], [92, 39|B]) :- !, % ' -> \'
+	isco_odbc_text_format_no_percent(A, B).
+isco_odbc_text_format_no_percent([34|A], [92, 34|B]) :- !, % " -> \"
+	isco_odbc_text_format_no_percent(A, B).
+isco_odbc_text_format_no_percent([X|A], [X|B]) :- % default
+	isco_odbc_text_format_no_percent(A, B).
+
+
+% -- Replace all variables by '%' (for SQL "like" matching...) ----------------
+
+isco_percent_variables(V) :- var(V), !, V='%'.
+isco_percent_variables(X) :- atomic(X), !.
+isco_percent_variables([V|Vs]) :- !,
+	isco_percent_variables(V),
+	isco_percent_variables(Vs).
+isco_percent_variables(V) :- V=..[_|Vs], isco_percent_variables(Vs).
+
 
 % -- ISCO/ODBC formats for constrained variables ------------------------------
 
@@ -255,9 +294,19 @@ isco_where_var(_, V, N, T, WP, 'and', WC, WCo) :-
 	!,
 	isco_odbc_fd_format(V, N, VF),
 	format_to_codes(WCo, '~s ~w o.~s', [WC, WP, VF]).
+isco_where_var(_, V, N, term, WP, 'and', WC, WCo) :- % special for terms...
+	nonvar(V), !,
+	copy_term(V, VC),
+	isco_percent_variables(VC),
+	format_to_codes(VS, '~k', [VC]),
+	isco_odbc_text_format_no_percent(VS, VF), % mung quotes...
+	format_to_codes(WCo, '~s ~w o.~w like ''~s''', [WC, WP, N, VF]).
 isco_where_var(C, V, N, T, WP, 'and', WC, WCo) :-
 	isco_odbc_format(T, C, V, VF),
-	format_to_codes(WCo, '~s ~w o.~w=~s', [WC, WP, N, VF]).
+	(N = instanceOf ->
+	    format_to_codes(WCo, '~s ~w c.relname=~s', [WC, WP, VF])
+	;
+	    format_to_codes(WCo, '~s ~w o.~w=~s', [WC, WP, N, VF]) ).
 
 % -- SQL ORDER BY generation for individual variables -------------------------
 %
@@ -484,15 +533,18 @@ isco_term_expansion((RELNAME_ARGS := NEWARGS), GOAL) :-
 % -- ISCO/Prolog delete goal --------------------------------------------------
 
 isco_term_expansion((RELNAME_ARGS :\), GOAL) :-
-	functor(RELNAME_ARGS, RELNAME, _NUMARGS), % what relation is this?
+	functor(RELNAME_ARGS, RELNAME, _),	% what relation is this?
 	atom(RELNAME),				% make sure it's bound
-	isco_class(RELNAME, ARITY),
+	isco_class(RELNAME, ARITYm1), ARITY is ARITYm1+1,
 	!,
 	RELNAME_ARGS =.. [_ | ARGLIST],
 	isco_arglist_to_args(ARGLIST, ARGS),
 	atom_concat('isco_delete__', RELNAME, PREDNAME),
+	isco_order_tuple(ARGS, NARGS, ORDER),
 	functor(GOAL, PREDNAME, ARITY),
-	isco_arg_list(ARGS, GOAL, RELNAME).
+	isco_arg_list(NARGS, GOAL, RELNAME, 0, 0, MASK),
+	isco_order_clause(ORDER, ORDER_CLAUSE),
+	arg(ARITY, GOAL, ORDER_CLAUSE+MASK).
 
 % -- Compound goals -----------------------------------------------------------
 
@@ -582,6 +634,10 @@ isco_tsort_level(M, PX, N, X) :-
 % -----------------------------------------------------------------------------
 
 % $Log$
+% Revision 1.8  2003/03/07 09:59:58  spa
+% term type.
+% delete done as select(oid)+delete(oid).
+%
 % Revision 1.7  2003/03/05 01:12:41  spa
 % support oid= and instanceOf= arguments.
 % support redefinition of arguments, namely for default values.

@@ -243,6 +243,7 @@ type(int).
 type(float).
 type(bool).
 type(text).
+type(term).
 type(date).
 type(datetime).
 type(dt).					% same as 'datetime'
@@ -251,8 +252,12 @@ type(X) :- var(X), !.
 type(X) :- format("illegal ISCO type: ~w~n", [X]).
 
 % $Log$
-% Revision 1.1  2003/01/06 14:27:17  spa
-% Initial revision
+% Revision 1.2  2003/03/07 09:59:58  spa
+% term type.
+% delete done as select(oid)+delete(oid).
+%
+% Revision 1.1.1.1  2003/01/06 14:27:17  spa
+% Imported into CVS
 %
 % Revision 1.18  2001/08/24 18:16:49  spa
 % Take note of "index" attributes (class and field).

@@ -177,20 +177,29 @@ isco_prolog_ichf([f(NUM,NAME,TYPE,_)|Fs], HEAD, HVARs) :-
 	isco_prolog_ichf(Fs, HEAD, HVARs).
 
 
+% -- isco_prolog_class_body(Vs, RNAME, HEAD, GOAL, CH, OC_VAR+MASK) -----------
+%
+% Generate the class head and body for the "select" function.  Parameters:
+% Vs -> list of variables
+%       ( from the symbol table, as a list of POS=f(VAR,NAME,TYPE)
+% RNAME -> relation name
+% HEAD, GOAL -> clause head and body, resp.
+% CH -> back-end channel variable
+% OC_VAR -> ORDER BY clause
+% MASK -> output variable selection mask
+
 isco_prolog_class_body(Vs, RNAME, HEAD, GOAL, CH, OC_VAR+MASK) :-
 	functor(HEAD,CNAME,_),
 	( isco_database_type(CNAME, DBTYPE, ST),
 	  isco_auto_inheritance(DBTYPE, DESCEND) -> true ; DESCEND='' ),
 	GOAL = (
-	  ( MASK = 0 ->
-	     format_to_codes(SQLin, 'select o.oid, c.relname as instanceOf, o.* from ~w~w o, pg_class c where c.oid=o.tableoid', [RNAME, DESCEND])
-	  ; % -- exclude oid and instanceOf from select: they're here already.
-	    MASK1 is MASK /\ \6, % 6 is: 2 forced args (2^N-1)<<1
-	    MASK2 is MASK \/ 6,
-	    isco_mask_to_var_list(HEAD, _, MASK2, VL),
-	    isco_mask_to_var_list(HEAD, _, MASK1, VL1),
-	    isco_var_list_to_select(VL1, SELf),
-	    format_to_codes(SQLin, 'select o.oid, c.relname as instanceOf, ~s from ~w~w o, pg_class c where c.oid=o.tableoid', [SELf, RNAME, DESCEND]) ),
+	  ( MASK = 0 -> NMASK = -1 ; NMASK=MASK ),
+	  MASK1 is NMASK /\ \6, % 6 is: 2 forced args (2^N-1)<<1
+	  MASK2 is NMASK \/ 6,
+	  isco_mask_to_var_list(HEAD, _, MASK2, VL),
+	  isco_mask_to_var_list(HEAD, _, MASK1, VL1),
+	  isco_var_list_to_select(VL1, SELf),
+	  format_to_codes(SQLin, 'select o.oid, c.relname as instanceOf, ~s from ~w~w o, pg_class c where c.oid=o.tableoid', [SELf, RNAME, DESCEND]),
 	  G1 ),
 	isco_where_clause(Vs, CH, G1, G2, SQLin, SQLout),
 	G2 = (append(SQLout, OC_VAR, SQLfinal),
@@ -207,7 +216,7 @@ isco_prolog_class_body_fields(EOV, true, _, _, _, _) :- var(EOV), !.
 isco_prolog_class_body_fields([], true, _, _, _, _).
 isco_prolog_class_body_fields([P=f(V,N,T)|VARs], GOAL, CH, SH, VL, MASK) :-
 	isco_odbc_type(T, OT), odbc_type(OT, OTn),
-	( isco_odbc_conv(T, _, _) -> CONV=yes ; CONV=no ),
+	( isco_odbc_conv(T) -> CONV=yes ; CONV=no ),
 	GOAL = (isco_be_get_arg(MASK, N, P, CH, SH, OTn, CONV, V, T, VL), Gs),
 	isco_prolog_class_body_fields(VARs, Gs, CH, SH, VL, MASK).
 
@@ -344,8 +353,7 @@ isco_prolog_code_insert_body(CN, NET, [F|Fs], P, Q, HEAD, BODY, CH, O) :-
 
 % -- Generate code to delete a tuple ------------------------------------------
 
-% (adapted from update code...)
-% Schema for tuple update predicates:
+% Tuple delete predicates:
 % name: isco_delete__NAME
 % arity: ARITY
 % args: the WHERE clause
@@ -355,37 +363,32 @@ isco_prolog_code_delete(CNAME, NET, NFs, Fs) :-
 	ol_memberchk(mutable, As),
 	( ol_memberchk(external(XID, XNAME), As) ; XID=isco, XNAME=CNAME ),
 	!,
+	% ---------------------------------------------------------------------
 	atom_concat('isco_delete__', CNAME, ISCO_NAME),
-	ARITY is NFs,
-	functor(HEAD, ISCO_NAME, ARITY),
-	HEAD =.. [HF | HA], HEAD1 =.. [HF, CH | HA],
+	isco_prolog_class_head(CNAME, NFs, Fs, HEAD0, VARs, OC_VAR),
+	isco_prolog_class_body(VARs, XNAME, HEAD0, Bselect, CH, OC_VAR),
+	% ---------------------------------------------------------------------
+	HEAD0 =.. [_|HA],
+	HEAD =.. [ISCO_NAME | HA],
+	HA = [OID, IOF | _],			% pin down oid and iOf
+	HEAD1 =.. [ISCO_NAME, CH | HA],
 	( XID=isco ->
 	    BODY1 = (isco_connection(CH), HEAD1)
 	;   atom_concat('isco_', XID, ISCO_XID),
 	    BODY1 = (isco_connection(ISCO_XID, CH), HEAD1) ),
+	% ---------------------------------------------------------------------
+	Bdelete = (
+	    format_to_codes(QUERYd, 'delete from ~w where oid=~w', [IOF, OID]),
+	    ( g_read(isco_debug_sql, 1) ->
+	      format('sql: ~s~n', [QUERYd]) ; true ),
+	    isco_be_exec(CH, QUERYd, SH) ),
+	BODY = (Bselect, Bdelete),
+	% ---------------------------------------------------------------------
 	nl,
-	portray_clause((HEAD :- BODY1)),
-	!,
-%% -- Legend for body variables -----------------------------------------------
-%%
-%% BODY = (construct query Q0 = QPFX),
-%% B1   = (construct SET part, will build Q_S, args in QA_S, uses H_S)
-%% B2   = (construct WHERE part, will build Q_W, args in QA_W, uses H_W)
-%% B3   = (finalize query and do the thing)
-
-	length(HA_W, NFs),			% head args for WHERE...
-	append(_, HA_W, HA),			% ...are at the end of HA.
-	H_W =.. [HF | HA_W],			% "head" for WHERE
-	format_to_codes(QPFX, 'delete from ~w', [XNAME]),
-	BODY = (Q0 = QPFX, B1),
-	B1 = B2, Q0 = Q1,			% lazy me!
-	isco_update_where(NFs, Fs, CH, H_W, B2, B3, Q1, QUERY),
-	B3 = (( g_read(isco_debug_sql, 1) ->
-		  format('sql: ~s~n', [QUERY]) ; true ),
-	      isco_be_exec(CH, QUERY, _SH)),
-	nl,
-	portray_clause((HEAD1 :- BODY)),
-	nl.
+%	portray_clause((HEADx :- BODYx)), nl,	% just declared args
+%	portray_clause((HEAD0 :- BODY0)), nl,	% ... & oid/iOf
+	portray_clause((HEAD :- BODY1)), nl,	% ... & mask
+	portray_clause((HEAD1 :- BODY)), nl.	% ... & DB channel
 isco_prolog_code_delete(_, _, _, _).
 
 
@@ -610,6 +613,10 @@ isco_prolog_sequence(NAME, ATTRs) :-
 % -----------------------------------------------------------------------------
 
 % $Log$
+% Revision 1.7  2003/03/07 09:59:58  spa
+% term type.
+% delete done as select(oid)+delete(oid).
+%
 % Revision 1.6  2003/03/05 01:12:41  spa
 % support oid= and instanceOf= arguments.
 % support redefinition of arguments, namely for default values.

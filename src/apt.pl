@@ -420,8 +420,7 @@ isco_apt_zap_fields(_NAME, NET) :-
 	\+ DESC=[],				% it's got subclasses
 	lookup(NET, fields, fields=FLIST),
 	ol_memberchk(f(_,instanceOf,_,ALIST), FLIST),
-	!,
-	insert(ALIST, skip=yes).
+	member(skip=yes, ALIST), !.
 isco_apt_zap_fields(_, _).
 
 

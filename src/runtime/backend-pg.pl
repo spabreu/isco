@@ -28,11 +28,22 @@
 
 exec(Q, R) :- pq_exec(C, Q, R).
 fetch(_).
+%%DBG get_data(R,X,T,V) :- write(get_data(R,X,T,V)), nl, fail.
+get_data(R, X, term, V) :-
+	!,
+	pq_get_data_codes(R, X, VS),
+	catch( ( read_term_from_codes(VS, V,
+				      [syntax_error(fail), end_of_term(eof)])
+	       ; V='' ), _, V='').
 get_data(R, X, T, V) :- pq_get_data(R, X, T, V).
 ntuples(R, N) :- pq_ntuples(R, N).
 oid(_R, O) :- pq_last_oid(C, O).
 
 % $Log$
+% Revision 1.3  2003/03/07 09:59:58  spa
+% term type.
+% delete done as select(oid)+delete(oid).
+%
 % Revision 1.2  2003/03/05 01:12:41  spa
 % support oid= and instanceOf= arguments.
 % support redefinition of arguments, namely for default values.

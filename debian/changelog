@@ -1,3 +1,23 @@
+isco (2.1-3) unstable; urgency=low
+
+  * Reworked delete code to use OIDs: it's now a select followed by
+    deletes which only refer class and OID.
+  * select, etc: treat instanceOf as special (it's not an SQL name.)
+  * Implementation of the 'term' datatype, with special care in the
+    isco_where_var/8 predicate.
+  * isco_odbc_conv/1 added to allow static checking for the need of
+    conversion.
+  * Always specify all the field names in select operations, ie. never use
+    "select *...", because of possible ordering issues.
+
+ -- Salvador Abreu <spa@debian.org>  Fri,  7 Mar 2003 08:44:22 +0000
+
+isco (2.1-2) unstable; urgency=low
+
+  * Fixed duplicate insertion of "skip=yes"...
+
+ -- Salvador Abreu <spa@debian.org>  Wed,  5 Mar 2003 21:16:07 +0000
+
 isco (2.1-1) unstable; urgency=low
 
   * Allow for oid= and instanceOf= attributes for all classes.
