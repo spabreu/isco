@@ -36,14 +36,53 @@
 #   -o FILE         Same as --output=FILE
 #   --compile, -c   Compile all files
 
+# -- setup --------------------------------------------------------------------
+
 PREFIX=@prefix@
 LIBDIR=@prefix@/lib/isco
+PLXDIR=@prefix@/lib/gprolog-cx/ext
 
+GPLC=gplc-cx
+ISCOC=iscoc
 
 PROG=${0##*/}
-FILE=
-OUTPUT=
 
+PREFIX="\
+	$LIBDIR/revision.o \
+	$LIBDIR/apt.o \
+	$LIBDIR/top-level.o \
+	$LIBDIR/ctype.o \
+	$LIBDIR/empty-classes.o \
+	$LIBDIR/copyright.o \
+	$LIBDIR/isco_lib_dir.o"
+
+DB="\
+	$PLX/postgresql/interface.pl \
+	$PLX/postgresql/module.o \
+	$PLX/odbc/interface.pl \
+	$PLX/odbc/module.o"
+
+LIBDB="-L -lodbc -L -lpq"
+
+SUFFIX="$DB $LIBDB"
+
+# -- execution parameters -----------------------------------------------------
+
+OUTPUT=""
+
+FILES=""
+SEP=""
+
+IFILES=""
+ISEP=""
+
+PIFILES=""
+PISEP=""
+
+# -- go! ----------------------------------------------------------------------
+
+COMPILE=
+KEEP=
 while [ ! -z "$1" ]; do
   case $1 in
 
@@ -62,14 +101,29 @@ EOF
     shift;
     shift;;
 
+  -c|--compile)
+    COMPILE=yes;
+    KEEP=yes;
+    shift;;
+
+  -k|--keep)
+    KEEP=yes;
+    shift;;
+
   -*)
     echo 1>&2 illegal flag: $1. try $PROG --help for information.;
     exit 1;;
 
-  *.sql)
+  *.isco)
+    IFILE=$1;
+    IFILES="$IFILES$ISEP$IFILE";
+    ISEP=" ";
+    shift;;
+
+  *.pl|*.c)
     FILE=$1;
-    [ -z "$PREFIX" ] && { PREFIX=${FILE##*/}; PREFIX=${PREFIX%.sql}; };
-    [ -z "$OUTPUT" ] && OUTPUT=${PREFIX}.isco;
+    FILES="$FILES$SEP$FILE";
+    SEP=" ";
     shift;;
 
   *)
@@ -78,16 +132,34 @@ EOF
   esac
 done
 
-if [ -z "$FILE" -o -z "$PREFIX" ]; then
-  echo 1>&2 no file specified. try $PROG --help for information.
+if [ -z "$FILES" -a -z "$IFILES" ]; then
+  echo 1>&2 "no files specified. try $PROG --help for information."
+  exit 1
+fi
+
+if [ -z "$OUTPUT" -a -z "$COMPILE" ]; then
+  echo 1>&2 "no output and not compiling.  try $PROG --help for information."
   exit 1
 fi
 
 LC_ALL=en_US
 export LC_ALL
 
-$COMPILER -c $FILES > $OUTFILE
-$GPLC -o $OUTPUT $PREFIXFILES $OUTFILE $LIBS
+for IFILE in $IFILES; do
+  [ -n "$COMPILE" ] && PIFILE=${IFILE%.isco}.pl
+  [ -z "$COMPILE" ] && PIFILE=$(tempfile -p isco -s .pl)
+  $ISCOC -c $IFILE > $PIFILE
+  FILES="$FILES$SEP$IFILE"
+  SEP=" "
+  PIFILES="$PIFILES$PISEP$PIFILE"
+  PISEP=" "
+done
+
+[ -z "$OUTPUT" ] && exit 0
+
+echo $GPLC -o $OUTPUT $PREFIX $FILES $SUFFIX
+
+[ -z "$KEEP" ] && echo rm -f $PIFILES
 
 # Local Variables:
 # mode: shell-script
