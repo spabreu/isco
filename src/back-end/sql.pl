@@ -22,7 +22,7 @@
 %  Public License can be found in `/usr/share/common-licenses/GPL'.
 % -----------------------------------------------------------------------------
 
-:- unit(isco_sql(ST)).
+:- unit(isco_sql).
 
 % == SQL code generation (schema) for ISCO ====================================
 
@@ -58,10 +58,7 @@ isco_sql_code(REL, DBTYPE) :-
 
 isco_sql_header(CNAME, COMMA) :-
 	format('create table "~w" (', [CNAME]),
-	( ( isco_has_subclass(CNAME, _) ; isco_has_subclass(_, CNAME) ) ->
-	    format('~n  "classe" text default (''~w'')', [CNAME]),
-	    COMMA=',\n'
-	; COMMA='\n' ).
+	COMMA='\n'.
 
 
 isco_sql_fields(REL, o_rel, COMMA) :- !,
@@ -78,16 +75,22 @@ isco_sql_fields(N, N, _, _) :- !.
 isco_sql_fields(N, M, R, X) :-
 	N1 is N+1,
 	( isco_field(R, F, N1, TYPE) -> true ; fail ),
-	isco_odbc_generated_type(TYPE, FTYPE),
-	format('~w  "~w" ~w', [X, F, FTYPE]),
-	( isco_sql_field_attributes(R, F), fail ; true ),
-	isco_sql_fields(N1, M, R, ',\n').
+	( F=oid, N1=1 ->	% OID is built-in
+	    NEXT_X=X
+	;   F=instanceOf, N1=2 -> % instanceOf is built-in
+	    NEXT_X=X
+	;
+	    isco_odbc_generated_type(TYPE, FTYPE),
+	    format('~w  "~w" ~w', [X, F, FTYPE]),
+	    (	isco_sql_field_attributes(R, F), fail ; true ),
+	    NEXT_X=',\n' ),
+	isco_sql_fields(N1, M, R, NEXT_X).
 
 isco_sql_field_attributes(CLASS, FIELD) :-
 	isco_field_default(CLASS, FIELD, DEFAULT),
 	isco_field(CLASS, FIELD, _, TYPE),
 	isco_odbc_format(TYPE, DEFAULT, DEF),
-	format(' default (~w)', [DEF]).
+	format(' default (~s)', [DEF]).
 
 isco_sql_field_attributes(CLASS, FIELD) :-
 	isco_field_unique(CLASS, FIELD),
@@ -147,6 +150,9 @@ isco_sql_extra_stuff(_, _).
 % -----------------------------------------------------------------------------
 
 % $Log$
+% Revision 1.2  2003/03/07 15:30:27  spa
+% *** empty log message ***
+%
 % Revision 1.1  2003/01/06 15:15:01  spa
 % *** empty log message ***
 %

@@ -498,14 +498,16 @@ isco_field_numbers([], N, N, _).
 % 	isco_field_numbers(Fs, N, N1, CNAME). % if so, ignore
 isco_field_numbers([F|Fs], N, KF, CNAME) :-
 	isco_field_numbers(Fs, N, N1, CNAME),
-	F=f(KF,NAME,TYPE,ATTRs),
+	F=f(KFi,NAME,TYPE,ATTRs),
 	( memberchk(f(K,NAME,TYPE,ATTRs2), Fs) ->
-	    KF=K,				% repeated field (default?)
+	    KFi=K,				% repeated field (default?)
+	    KF=N1,
 	    insert(ATTRs, dupe=yes),
 	    member(dupedIn=DUPEDIN, ATTRs2),
 	    insert(DUPEDIN, CNAME)		% remember WHO redefines it.
 	;
 	    KF is N1+1,				% genuine new field...
+	    KFi=KF,
 	    isco_field_number(F, KF, CNAME) ).
 
 isco_field_number(f(N,_,_,_), N, _) :- !.
