@@ -1,0 +1,13 @@
+TODO:
+
+- delete: take care of oid= and instanceOf=
+- delete: runtime interface
+- update: take care of oid= and instanceOf=
+- update: runtime interface
+
+DONE:
+
+- lookup: take care of oid= and instanceOf=
+- insert: take care of oid= and instanceOf=
+- insert: pick up appropriate default when using inheritance
+- insert: runtime interface
