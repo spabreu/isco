@@ -35,6 +35,7 @@ PROG = isco
 LOADER = $(PROG)
 COMPILER = $(PROG)c
 PROGSHELL = $(PROG)-shell
+COMPILERSHELL = $(COMPILER)-shell
 
 PREFIX = @prefix@
 LIBDIR = $(PREFIX)/lib/$(PROG)
@@ -55,6 +56,7 @@ PLFILES = \
 	runtime/backend-odbc.pl \
 	back-end/code-gen-directives.pl \
 	back-end/prolog.pl \
+	back-end/inherit.pl \
 	$(wildcard back-end/code/*.pl) \
 	back-end/sql-build.pl \
 	back-end/sql-schema.pl \
@@ -80,6 +82,7 @@ ISCOC_OBJECTS = \
 	cmdline.o \
 	back-end/code-gen-directives.o \
 	back-end/prolog.o \
+	back-end/inherit.o \
 	$(subst .pl,.o,$(wildcard back-end/code/*.pl)) \
 	back-end/sql-build.o \
 	back-end/sql-schema.o \
@@ -143,6 +146,11 @@ $(COMPILER): $(ISCOC_OBJECTS) $(DB)
 		$(ISCOC_FLAGS) \
 		$(DB) $(LIBDB)
 
+$(COMPILERSHELL): $(ISCOC_OBJECTS) $(DB)
+	$(GPLC) $(GPLCFLAGS) -o $@ \
+		$(subst cmdline.o,,$(ISCOC_OBJECTS)) \
+		$(DB) $(LIBDB)
+
 $(PROGSHELL): $(SHELL_OBJECTS) $(DB)
 	$(GPLC) $(GPLCFLAGS) -o $@ \
 		$(SHELL_OBJECTS) \
@@ -188,6 +196,9 @@ revision.pl: revision.pl.in ../debian/changelog
 
 
 # $Log$
+# Revision 1.12  2003/04/15 15:00:38  spa
+# Make an "iscoc-shell" to assist in debugging (not installed: in-place only)
+#
 # Revision 1.11  2003/04/08 13:45:58  spa
 # Start working on cached classes.
 #
