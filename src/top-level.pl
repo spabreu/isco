@@ -33,8 +33,8 @@ isco_dir(DIR, ST) :-
 	parser :> parse(A, P, []),
 	isco_apt(A, ST),
 	!,
-	isco_schema(ST) :> emit,
-	isco_prolog(ST) :> emit.
+	schema(ST) :> emit,
+	prolog(ST) :> emit.
 
 isco(P, ST) :-
 	parser :> parse(A, P, []),
@@ -96,8 +96,11 @@ isco_load(T, Vs, Pin, [T/Vs|Pout]) :-
 	isco_load(NEXT, NVs, Pin, Pout).
 
 % $Log$
-% Revision 1.1  2003/01/06 14:27:14  spa
-% Initial revision
+% Revision 1.2  2003/03/12 19:06:36  spa
+% Use simplified unit names...
+%
+% Revision 1.1.1.1  2003/01/06 14:27:14  spa
+% Imported into CVS
 %
 % Revision 1.11  2001/05/07 14:49:06  spa
 % Include revision.pl.

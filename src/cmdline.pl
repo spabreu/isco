@@ -53,9 +53,9 @@ action(FILEs, [compile]) :-
 	parser :> parse(APT, PROGRAM, []),
 	isco_apt(APT, ST),
 	!,
-	isco_directives(ST) :> emit,
-	isco_schema(ST) :> emit,
-	isco_prolog(ST) :> emit.
+	directives(ST) :> emit,
+	schema(ST) :> emit,
+	prolog(ST) :> emit.
 
 action(FILEs, [php]) :-
 	!,
@@ -184,8 +184,11 @@ isco_php_lib('-L -lpq').
 
 
 % $Log$
-% Revision 1.1  2003/01/06 14:27:15  spa
-% Initial revision
+% Revision 1.2  2003/03/12 19:06:49  spa
+% Use simplified unit names...
+%
+% Revision 1.1.1.1  2003/01/06 14:27:15  spa
+% Imported into CVS
 %
 % Revision 1.16  2001/08/24 18:44:14  spa
 % typo.
