@@ -1,7 +1,7 @@
 % $Id$
 
 % -----------------------------------------------------------------------------
-%  ISCO is Copyright (C) 1998-2001 Salvador Abreu
+%  ISCO is Copyright (C) 1998-2003 Salvador Abreu
 %  
 %     This program is free software; you can redistribute it and/or
 %     modify it under the terms of the GNU General Public License as
@@ -24,6 +24,10 @@
 
 % == Prolog code generation (clauses) for ISCO ================================
 
+%% This unit takes care of generating all the "operating" clauses for all
+%% classes and other top-level items (such as sequences and regular
+%% predicates)
+
 :- unit(prolog(ST)).
 
 emit :- DASH="=",
@@ -31,6 +35,9 @@ emit :- DASH="=",
 	atom_length(C, CLENGTH),
 	format("~n~w~*c~n~n", [C, 79-CLENGTH, DASH]),
 	isco_prolog_code(ST).
+
+
+st(ST).						% utility...
 
 
 isco_prolog_code(EST) :- var(EST), !.
@@ -54,6 +61,17 @@ isco_prolog_code([CNAME=NET|Ss]) :-
 
 % -- Generate access code for any class ---------------------------------------
 
+isco_prolog_class(CNAME, NET) :-		% computed classes
+	lookup(NET, prules, prules=RULES),
+	nonvar(RULES),
+	!,
+	isco_prolog_class_header(computed, CNAME, NET),
+	isco_prolog_computed_class_prefix(RULES, CNAME),
+	isco_prolog_computed_class(RULES, select),
+	isco_prolog_class_inheritance(CNAME, NET),
+	isco_prolog_computed_class(RULES, insert),
+	isco_prolog_computed_class(RULES, delete).
+
 isco_prolog_class(CNAME, NET) :-		% external DB classes
 	lookup(NET, atrib, atrib=As),
 	ol_memberchk(external(XID, XNAME), As),
@@ -71,15 +89,6 @@ isco_prolog_class(CNAME, NET) :-		% external DB classes
 	    isco_prolog_code_insert(CNAME, NET, NFs, FF)
 	; format("error: external database ~w not declared.~n", [XID]),
 	  fail ).
-
-isco_prolog_class(CNAME, NET) :-		% computed classes
-	lookup(NET, prules, prules=RULES),
-	nonvar(RULES),
-	!,
-	isco_prolog_class_header(computed, CNAME, NET),
-	isco_prolog_computed_class_prefix(RULES, CNAME),
-	isco_prolog_computed_class(RULES),
-	isco_prolog_class_inheritance(CNAME, NET).
 
 isco_prolog_class(CNAME, NET) :-		% regular class
 	lookup(NET, fields, fields=Fs),
@@ -133,23 +142,40 @@ isco_prolog_class_header_fields([f(NUM,NAME,TYPE,ATTRs)|Fs]) :-
 	;   format("%%    ~2w. ~w: ~w.~n", [NUM, NAME, TYPE]) ).
 
 
-isco_prolog_computed_class_prefix([rule(HEAD,_)|_], CNAME) :-
-	HEAD =.. [PNAME, _OID, CNAME1 | ARGS],
+isco_prolog_computed_class_prefix([rule(select,HEAD,_)|_], CNAME) :-
+	HEAD =.. [PNAME, _OID, CNAME | ARGS],
 	HEAD0 =.. [PNAME | ARGS],
 	portray_clause((HEAD0 :- HEAD)), nl.
 isco_prolog_computed_class_prefix(_, _).
 
 
-isco_prolog_computed_class(EOR) :- var(EOR), !.
-isco_prolog_computed_class([]).
-isco_prolog_computed_class([rule(HEAD,BODY) | Rs]) :-
-	isco_prolog_computed_class_rule(HEAD, BODY),
-	!,
-	isco_prolog_computed_class(Rs).
+isco_prolog_computed_class(EOR, _) :- var(EOR), !.
+isco_prolog_computed_class([], _).
+
+isco_prolog_computed_class([rule(select, HEAD, BODY) | Rs], select) :- !,
+	portray_clause((HEAD :- BODY)), nl,
+	isco_prolog_computed_class(Rs, select).
+
+isco_prolog_computed_class([rule(insert, HEAD0, BODY) | Rs], insert) :- !,
+	HEAD0 =.. [CNAME | ARGS],
+	atom_concat('isco_insert__', CNAME, PNAME),
+	HEAD =.. [PNAME | ARGS],
+	arg(2, HEAD, CNAME),
+	portray_clause((HEAD :- BODY)), nl,
+	isco_prolog_computed_class(Rs, insert).
+
+isco_prolog_computed_class([rule(delete, HEAD0, BODY) | Rs], delete) :- !,
+	HEAD0 =.. [CNAME | ARGS],
+	atom_concat('isco_delete__', CNAME, PNAME),
+	HEAD =.. [PNAME | ARGS],
+	arg(2, HEAD, CNAME),
+	portray_clause((HEAD :- BODY)), nl,
+	isco_prolog_computed_class(Rs, delete).
+
+isco_prolog_computed_class([_ | Rs], TYPE) :-
+	isco_prolog_computed_class(Rs, TYPE).
 
 
-isco_prolog_computed_class_rule(HEAD, BODY) :-
-	portray_clause((HEAD :- BODY)), nl.
 
 % -- Generate code to access a regular class ----------------------------------
 
@@ -272,6 +298,16 @@ isco_method(computed, computed, computed).
 isco_method(ITEMS, TRANSPORT, METHOD) :-	% fallback (preferred)
 	lookup(ITEMS, transport, transport=TRANSPORT),
 	lookup(ITEMS, method, method=METHOD).
+
+% -- isco_source(+CLASS, -XSPEC) ----------------------------------------------
+
+isco_source(CNAME, XSPEC) :-
+	lookup(ST, CNAME, _=NET),
+	( lookup(NET, atrib, atrib=ATTRs),
+	  ol_memberchk(external(XID, _), ATTRs) -> XSPEC = external(XID)
+	; lookup(NET, prules) -> XSPEC = computed
+	; XSPEC = regular ).
+
 
 % -- External specs: ----------------------------------------------------------
 %
@@ -532,9 +568,16 @@ isco_prolog_class_argnames([f(_,NAME,_,_)|FL], Lin, Lout, PFX) :-
 
 % -- Clauses to model inheritance (subtypes) ----------------------------------
 
+
 isco_prolog_class_inheritance(CNAME, _NET) :-
-	isco_locate_generator(CNAME, GEN),
-	GEN :> isco_auto_inheritance,		% do we get it for free?
+	inherit(CNAME, _C2) :> clause(CL),
+	portray_clause(CL), nl.
+isco_prolog_class_inheritance(_, _) :- !.
+
+
+
+isco_prolog_class_inheritance(CNAME, NET) :-
+	isco_automagic_inheritance(CNAME, NET),
 	!.
 
 isco_prolog_class_inheritance(CNAME, NET) :-
@@ -548,6 +591,57 @@ isco_prolog_class_inheritance(CNAME, NET) :-
 	length(SNAMEs, NF),			% how many?
 	isco_prolog_class_inheritance_list(SUBCLASSES, CNAME, NF).
 isco_prolog_class_inheritance(_, _).
+
+
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+% isco_automagic_inheritance/2: succeeds if no special measures
+
+needs_explicit_inheritance(CNAME, _NET) :-
+	isco_locate_generator(CNAME, GEN),
+	GEN :> isco_auto_inheritance, !,
+	
+needs_explicit_inheritance(_, _).
+
+
+isco_automagic_inheritance(CNAME, NET) :-
+	isco_locate_generator(CNAME, GEN),
+	GEN :> isco_auto_inheritance,		% do we get it for free?
+	some_subclass(CNAME, NET, SCNAME),
+	isco_locate_generator(SCNAME, SGEN),
+	\+ SGEN :> isco_auto_inheritance,
+	!,
+	fail.
+isco_automagic_inheritance(CNAME, _NET) :-
+	isco_locate_generator(CNAME, GEN),
+	GEN :> isco_auto_inheritance,		% do we get it for free?
+	!.
+
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+subclass(_CNAME, NET, SCNAME) :-
+	lookup(NET, subs, subs=SUBCLASSES),
+	ol_member(SCNAME, SUBCLASSES).
+
+superclass(_CNAME, NET, SCNAME) :-
+	lookup(NET, super, super=SCNAME).
+
+
+some_subclass(CNAME, NET, SCNAME) :-
+	subclass(CNAME, NET, SCNAME0),
+	( SCNAME=SCNAME0
+	; lookup(ST, SCNAME0, SCNAME0=NET0),
+	  some_subclass(SCNAME0, NET0, SCNAME) ).
+
+some_superclass(CNAME, NET, SCNAME) :-
+	superclass(CNAME, NET, SCNAME0),
+	( SCNAME=SCNAME0
+	; lookup(ST, SCNAME0, SCNAME0=NET0),
+	  some_superclass(SCNAME0, NET0, SCNAME) ).
+
+
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
 
 isco_prolog_class_inheritance_list(ECL, _, _) :- var(ECL), !.
 isco_prolog_class_inheritance_list([], _, _) :- !.
@@ -635,6 +729,11 @@ isco_prolog_sequence(NAME, ATTRs) :-
 % -----------------------------------------------------------------------------
 
 % $Log$
+% Revision 1.16  2003/04/15 15:05:10  spa
+% Many changes, mostly to do with:
+% - inheritance (preliminary work on a cleaner way of doing it)
+% - computed classes now have 3 types (select, delete, insert)
+%
 % Revision 1.15  2003/04/11 08:53:04  spa
 % Correct computed classes...
 %
