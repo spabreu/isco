@@ -51,6 +51,7 @@ PREFIX="\
 	$LIBDIR/ops.pl \
 	$LIBDIR/ctype.o \
 	$LIBDIR/runtime.o \
+	$LIBDIR/revision.o \
 	$LIBDIR/backend.o \
 	$LIBDIR/backend-odbc.o \
 	$LIBDIR/backend-pg.o \
