@@ -4,12 +4,18 @@ DH_COMPAT=3
 
 package=isco
 
-build:
+configure: stamp-configure
+stamp-configure:
 	$(checkdir)
 	autoconf
 	./configure --prefix=/usr
+	touch stamp-configure
+
+build: stamp-build
+stamp-build: configure
+	$(checkdir)
 	make all
-	touch build
+	touch stamp-build
 
 clean:
 	$(checkdir)
@@ -18,12 +24,16 @@ clean:
 	make -C util/schema-parser clean
 	find -name VERSION | xargs -r rm -f
 	dh_clean
+	rm -f stamp-*
 
-binary-indep: checkroot build
+binary-indep: stamp-binary-indep
+stamp-binary-indep: checkroot build
 	$(checkdir)
 	-rm -rf debian/tmp
+	touch stamp-binary-indep
 
-binary-arch: checkroot build
+binary-arch: stamp-binary-arch
+stamp-binary-arch: checkroot build
 	$(checkdir)
 	-rm -rf debian/tmp
 	install -d debian/tmp
@@ -43,6 +53,7 @@ binary-arch: checkroot build
 	dh_md5sums
 	dh_gencontrol
 	dh_builddeb
+	touch stamp-binary-arch
 
 define checkdir
 	test -f debian/rules
