@@ -15,6 +15,7 @@ isco_prolog_class_body(Vs, RNAME, HEAD, GOAL, CH, OC_MASK) :-
 
 
 
+
 % -- isco_prolog_class_body(Vs, RNAME, HEAD, GOAL, CH, OC_VAR+MASK) -----------
 %
 % Generate the class head and body for the "select" function.  Parameters:
