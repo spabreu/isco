@@ -1,7 +1,7 @@
 % $Id$ -*-Prolog-*-
 
 % -----------------------------------------------------------------------------
-%  ISCO is Copyright (C) 1998-2001 Salvador Abreu
+%  ISCO is Copyright (C) 1998-2003 Salvador Abreu
 %  
 %     This program is free software; you can redistribute it and/or
 %     modify it under the terms of the GNU General Public License as
@@ -25,6 +25,7 @@
 % -- Command line parser  -----------------------------------------------------
 
 top_level :-
+	open('/dev/fd/2', write, _, [alias(err), buffering(line)]),
 	argument_list(ARGS),
 	cmdline :> args(ARGS, FILEs, ACTIONs),
 	cmdline :> action(FILEs, ACTIONs).
@@ -35,11 +36,11 @@ top_level.
 :- unit(cmdline).
 
 action([], _) :-
-	format("no files specified.  use --help for information.~n", []),
+	format(err, "no files specified.  use --help for information.~n", []),
 	halt.
 
 action(_, []) :-
-	format("no action specified.  use --help for information.~n", []),
+	format(err, "no action specified.  use --help for information.~n", []),
 	halt.
 
 action(FILEs, [compile]) :-
@@ -75,7 +76,7 @@ action(FILEs, [sql]) :-
 	isco_sql(ST) :> emit.
 
 action(_, ACTION) :-
-	format("illegal action(s): ~w.  use --help for information.~n", [ACTION]),
+	format(err, "illegal action(s): ~w.  use --help for information.~n", [ACTION]),
 	halt.
 
 % -- Pick up command line arguments -------------------------------------------
@@ -111,7 +112,7 @@ flag([FLAG|REST], REST, [COMMAND|A], A) :-
 flag([FLAG|_], _, _, _) :-
 	atom_concat('-', _, FLAG),
 	!,
-	format("~w: unknown flag.  use --help for information.~n", [FLAG]),
+	format(err, "~w: unknown flag.  use --help for information.~n", [FLAG]),
 	halt.
 
 %single_flag('--verbose', _) :-
@@ -139,7 +140,7 @@ single_flag('--help', _) :-
 	halt.
 single_flag('--version', _) :-
 	isco_revision(R),
-	format("ISCO ~w~n", [R]),
+	format(err, "ISCO ~w~n", [R]),
 	halt.
 
 
@@ -184,6 +185,9 @@ isco_php_lib('-L -lpq').
 
 
 % $Log$
+% Revision 1.4  2003/04/15 15:03:06  spa
+% - error messages to stderr (new "err" stream alias...)
+%
 % Revision 1.3  2003/04/11 08:53:04  spa
 % Correct computed classes...
 %

@@ -88,7 +88,7 @@ isco_load((:-include(FILE)), _V, Pin, Pout) :- !,
 	    seen,
 	    see(PREV_INPUT)
 	;
-	    format("warning: ~w unreadable.~n", [FILE]),
+	    format(err, "warning: ~w unreadable.~n", [FILE]),
 	    read_term(NEXT, [variable_names(NVs)]),
 	    isco_load(NEXT, NVs, Pin, Pout) ).
 isco_load(T, Vs, Pin, [T/Vs|Pout]) :-
@@ -96,6 +96,9 @@ isco_load(T, Vs, Pin, [T/Vs|Pout]) :-
 	isco_load(NEXT, NVs, Pin, Pout).
 
 % $Log$
+% Revision 1.3  2003/04/15 15:03:45  spa
+% - error messages to stderr (new "err" stream alias...)
+%
 % Revision 1.2  2003/03/12 19:06:36  spa
 % Use simplified unit names...
 %
