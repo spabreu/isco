@@ -8,7 +8,7 @@ Standards-Version: 3.1.1
 Package: isco
 Architecture: i386
 Depends: ${shlibs:Depends},
- gprolog-cx, php4,
+ gprolog-cx (=1.2.13-3), php4,
  gprolog-php-cx, gprolog-postgresql-cx, gprolog-odbc-cx, gprolog-pillow-cx,
  java-compiler, java-virtual-machine, cup (>=0.10k), jlex (>=1.2.5)
 Conflicts: 

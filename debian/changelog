@@ -1,3 +1,9 @@
+isco (2.0-4) unstable; urgency=low
+
+  * depend on latest gprolog-cx.
+
+ -- Salvador Abreu <spa@debian.org>  Sat, 22 Feb 2003 02:42:19 +0000
+
 isco (2.0-3) unstable; urgency=low
 
   * util/scripts/isco: new flags (--php, --cgi, --pillow) to produce
