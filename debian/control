@@ -12,7 +12,7 @@ Depends: ${shlibs:Depends},
  gprolog-cx (=1.2.13-3),
  gprolog-php-cx,
  gprolog-postgresql-cx (>=1.0-4),
- gprolog-odbc-cx (>=1.0-4),
+ gprolog-odbc-cx (>=1.0-6),
  gprolog-pillow-cx,
  java-compiler, java-virtual-machine, cup (>=0.10k), jlex (>=1.2.5)
 Conflicts: 
