@@ -1,3 +1,10 @@
+isco (2.3-6) unstable; urgency=low
+
+  * don't barf on variables occurring in arguments lists when using
+    positional argument syntax (runtime/runtime.pl).
+
+ -- Salvador Abreu <spa@debian.org>  Tue, 17 Jun 2003 16:27:28 +0100
+
 isco (2.3-5) unstable; urgency=low
 
   * allow host:db syntax for isco default database.
