@@ -1,3 +1,18 @@
+isco (2.2-7) unstable; urgency=low
+
+  * rebuild with new gprolog-cx
+  * debian/rules: timestamps everywhere, config now separate
+  * runtime/runtime.pl and back-end/prolog.pl: quote field names in select
+    queries, as some field names are reserved words...
+  * util/scripts/isco.in: SQL schema generation unit changed file.
+  * src/back-end/sql-build.pl: generate containment-testing functions, add
+    functional column constraints whenever appropriate, don't emit useless
+    newlines, don't gratuitously succeed in isco_sql_extra_stuff/2.
+  * runtime/runtime: correct date and datetime types in inserts,
+    etc. (closes: #26)
+
+ -- Salvador Abreu <spa@debian.org>  Thu, 10 Apr 2003 10:10:42 +0100
+
 isco (2.2-6) unstable; urgency=low
 
   * rebuild with new gprolog-cx
