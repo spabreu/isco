@@ -194,6 +194,8 @@ isco_sql_trail(_, _) :-
 
 % -----------------------------------------------------------------------------
 
+:- dynamic(isco_extra_queue/1).
+
 isco_sql_extra_stuff(REL, _) :-
 	isco_compound_index(REL, FIELDs),
 	atom_concat(cic__, REL, RELX),
@@ -215,6 +217,47 @@ isco_sql_extra_stuff(REL, _) :-
 	      isco_field_key(SC, K))),
 	format('alter table "~w" add constraint "~w_pkey" primary key ("~w");',
 	       [REL, REL, K]).
+
+isco_sql_extra_stuff(REL, _) :-
+	isco_field_domain(REL, FNAME, XREL, _XFNAME),
+	isco_has_subclass(SREL, REL),
+	isco_field(SREL, FNAME, _, _),		% inherited field => implicit
+	\+ (isco_superclass(SREL, SSREL), isco_field(SSREL, FNAME, _, _)),
+	( isco_has_subclass(XREL, _) ->
+	    SXREL=XREL				% FIXME
+	; isco_has_subclass(S2REL, REL),
+	  clause(isco_extra_queue(no_irc(S2REL, FNAME)), _) ->
+	    fail
+	;
+	    SXREL = SREL ),
+	FORMAT = 'alter table only "~w" drop constraint "~w_~w" restrict;',
+	( clause(isco_extra_queue(no_irc(REL, FNAME)), _) ->
+	    true
+	;   assertz(isco_extra_queue(no_irc(REL, FNAME))) ),
+	format(FORMAT, [REL, SXREL, FNAME]).
+
+
+isco_sql_extra_stuff(REL, _) :-
+	isco_field_domain(REL, FNAME, XREL, XFNAME),
+	\+ isco_has_subclass(XREL, _),
+	isco_superclass(REL, SREL),
+	isco_field(SREL, FNAME, _, _),		% inherited field => implicit
+	atom_concat('alter table "~w"* add constraint "~w_~w"\n',
+		    ' foreign key ("~w") references "~w" ("~w") deferrable;',
+		    FORMAT),
+	format(FORMAT, [REL, REL, FNAME, FNAME, XREL, XFNAME]).
+
+
+isco_sql_extra_stuff(REL, _) :-
+	isco_field_domain(REL, FNAME, XREL, XFNAME),
+	once(isco_has_subclass(XREL, _)),
+	isco_superclass(REL, SREL),
+	isco_field(SREL, FNAME, _, _),		% inherited field => implicit
+	atom_concat('alter table "~w"* add constraint "~w_~w"',
+		    ' check (ok_~w_~w ("~w"));',
+		    FORMAT),
+	format(FORMAT, [REL, REL, FNAME, XREL, XFNAME, FNAME]).
+
 
 isco_sql_extra_stuff(REL, _) :-
 	isco_field_key(REL, FIELD),
@@ -241,6 +284,10 @@ isco_sql_extra_stuff(REL, _) :-
 % -----------------------------------------------------------------------------
 
 % $Log$
+% Revision 1.3  2003/04/16 08:46:19  spa
+% Initial hack at properly handling referential integrity constraints with
+% inheritance.
+%
 % Revision 1.2  2003/04/10 16:46:19  spa
 % predicates emit and build now come both in /0 and /1 forms.
 % build/2 takes special care not to do anything silly...
