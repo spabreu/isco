@@ -220,13 +220,16 @@ isco_odbc_format(term, _, S, SS) :- !,
 isco_odbc_format(int, _, nextval(SEQ), NVS) :- !,
 	format_to_codes(NVS, "nextval ('~w')", [SEQ]).
 
-isco_odbc_format(bool, pg(_), T, "true") :- memberchk(T, [t, true, 1]), !.
-isco_odbc_format(bool, pg(_), F, "false") :- memberchk(F, [f, false, 0]), !.
+isco_odbc_format(bool, DB, T, "true") :- has_bool(DB), memberchk(T, [t, true, 1]), !.
+isco_odbc_format(bool, DB, F, "false") :- has_bool(DB), memberchk(F, [f, false, 0]), !.
 isco_odbc_format(bool, _, T, "1") :- memberchk(T, [t, true, 1]), !.
 isco_odbc_format(bool, _, F, "0") :- memberchk(F, [f, false, 0]), !.
 
 isco_odbc_format(_TYPE, _, S, SS) :-
 	format_to_codes(SS, "~w", [S]).
+
+
+has_bool(_).					% they all accept booleans!
 
 
 isco_odbc_text_format([], []).
@@ -666,6 +669,9 @@ isco_tsort_level(M, PX, N, X) :-
 % -----------------------------------------------------------------------------
 
 % $Log$
+% Revision 1.13  2003/03/18 13:40:33  spa
+% isco_odbc_format/4: booleans now always produce "true" or "false".
+%
 % Revision 1.12  2003/03/16 09:22:25  spa
 % Transaction code fixed (patch by Gonçalo Marrafa <gjm@sc.uevora.pt>).
 %
