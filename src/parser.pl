@@ -225,8 +225,14 @@ id_item_line([F], V, [F=V]).
 
 % == parse a rule definition ==================================================
 
-isco_rules(_C, [rule(BODY, VARIABLES)|DEFs], FDEFs) -->
+isco_rules(_C, [rule(select, BODY, VARIABLES)|DEFs], FDEFs) -->
 	[ (rule :- BODY) / VARIABLES ], !,
+	isco_rules(_C, DEFs, FDEFs).
+isco_rules(_C, [rule(insert, BODY, VARIABLES)|DEFs], FDEFs) -->
+	[ (rule :+ :- BODY) / VARIABLES ], !,
+	isco_rules(_C, DEFs, FDEFs).
+isco_rules(_C, [rule(delete, BODY, VARIABLES)|DEFs], FDEFs) -->
+	[ (rule :\ :- BODY) / VARIABLES ], !,
 	isco_rules(_C, DEFs, FDEFs).
 isco_rules(_C, DEFs, DEFs) --> [].
 
@@ -252,6 +258,9 @@ type(X) :- var(X), !.
 type(X) :- format("illegal ISCO type: ~w~n", [X]).
 
 % $Log$
+% Revision 1.3  2003/04/15 15:03:31  spa
+% - rules now have a type (select, delete, insert)
+%
 % Revision 1.2  2003/03/07 09:59:58  spa
 % term type.
 % delete done as select(oid)+delete(oid).
