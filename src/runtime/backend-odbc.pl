@@ -28,6 +28,7 @@
 
 exec(Q, R) :- odbc_alloc_stmt(C, R), odbc_exec_direct(R, Q).
 fetch(R) :- odbc_fetch(R).
+%%DBG get_data(R, X, T, V) :- write(odbc(C):>get_data(R, X, T, V)), nl, fail. %%DBG
 get_data(R, X, T, V) :- odbc_get_data(R, X, T, V).
 
 ntuples(R, N) :- odbc_row_count(R, N).
@@ -35,6 +36,9 @@ oid(_, 0) :- format('[warning: OID implicitly used with ODBC!]\n', []).
 
 
 % $Log$
+% Revision 1.3  2003/03/16 09:21:45  spa
+% Debug code out.
+%
 % Revision 1.2  2003/03/12 19:02:13  spa
 % Add ntuples/2 and fake oid/2.
 %
