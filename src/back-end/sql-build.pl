@@ -87,8 +87,8 @@ isco_sql_code(SNAME, _) :-
 isco_sql_code(REL, DBTYPE) :-
 	isco_class(REL, _),
 	isco_sql_header(REL, COMMA),
-	isco_sql_fields(REL, DBTYPE, COMMA),
-	isco_sql_class_attributes(REL, DBTYPE),
+	isco_sql_fields(REL, DBTYPE, COMMA, COMMAout),
+	isco_sql_class_attributes(REL, DBTYPE, COMMAout),
 	isco_sql_trail(REL, DBTYPE).
 
 isco_sql_code(REL, DBTYPE) :-
@@ -106,32 +106,32 @@ isco_sql_header(CNAME, '\n') :-
 
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-isco_sql_fields(REL, o_rel, COMMA) :- !,
+isco_sql_fields(REL, o_rel, COMMA, COMMAout) :- !,
 	isco_class(REL, ARITY),
 	( isco_superclass(REL, SC) -> isco_class(SC, SCARITY) ; SCARITY=0 ),
-	isco_sql_fields(SCARITY, ARITY, REL, COMMA).
+	isco_sql_fields(SCARITY, ARITY, REL, COMMA, COMMAout).
 
-isco_sql_fields(REL, rel, COMMA) :- !,
+isco_sql_fields(REL, rel, COMMA, COMMAout) :- !,
 	isco_class(REL, ARITY),
-	isco_sql_fields(0, ARITY, REL, COMMA).
+	isco_sql_fields(0, ARITY, REL, COMMA, COMMAout).
 
 
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-isco_sql_fields(N, N, _, _) :- !.
-isco_sql_fields(N, M, R, X) :-
+isco_sql_fields(N, N, _, C, C) :- !.
+isco_sql_fields(N, M, R, Ci, Co) :-
 	N1 is N+1,
 	( isco_field(R, F, N1, TYPE) -> true ; fail ),
 	( F=oid, N1=1 ->	% OID is built-in
-	    NEXT_X=X
+	    NEXT_X=Ci
 	;   F=instanceOf, N1=2 -> % instanceOf is built-in
-	    NEXT_X=X
+	    NEXT_X=Ci
 	;
 	    isco_odbc_generated_type(TYPE, FTYPE),
-	    format('~w  "~w" ~w', [X, F, FTYPE]),
+	    format('~w  "~w" ~w', [Ci, F, FTYPE]),
 	    (	isco_sql_field_attributes(R, F), fail ; true ),
 	    NEXT_X=',\n' ),
-	isco_sql_fields(N1, M, R, NEXT_X).
+	isco_sql_fields(N1, M, R, NEXT_X, Co).
 
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -170,12 +170,14 @@ isco_sql_field_attributes(CLASS, FIELD) :-
 
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-isco_sql_class_attributes(REL, _) :-
-	isco_subclass(SC, REL), isco_compound_key(SC, FIELDs), !,
-	format(',\n    primary key (', []),
+isco_sql_class_attributes(CLASS, _, COMMA) :-
+	isco_subclass(SC, CLASS),		% CLASS is subclass of SC
+	isco_compound_key(SC, FIELDs), !,	% SC has a key
+	
+	format('~w    primary key (', [COMMA]),
 	isco_sql_class_keylist(FIELDs, ''),
 	format(')', []).
-isco_sql_class_attributes(_, _).
+isco_sql_class_attributes(_, _, _).
 
 
 isco_sql_class_keylist([], _).
@@ -284,6 +286,10 @@ isco_sql_extra_stuff(REL, _) :-
 % -----------------------------------------------------------------------------
 
 % $Log$
+% Revision 1.4  2003/05/24 14:43:30  spa
+% Avoid extraneous commas at the beginning of SQL create tables (when adding
+% constraints...)
+%
 % Revision 1.3  2003/04/16 08:46:19  spa
 % Initial hack at properly handling referential integrity constraints with
 % inheritance.
