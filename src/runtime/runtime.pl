@@ -46,17 +46,17 @@ isco_get_connection(_, _).
 
 isco_transaction :- isco_connection(C), isco_transaction(C).
 isco_transaction(C) :-
-	isco_be_exec(C, 'begin transaction', R),
+	isco_be_exec(C, "begin transaction", R),
 	isco_be_fetch(C, R) -> true ; true.
 
 isco_commit :- isco_connection(C), isco_commit(C).
 isco_commit(C) :-
-	isco_be_exec(C, 'end transaction', R),
+	isco_be_exec(C, "end transaction", R),
 	isco_be_fetch(C, R) -> true ; true.
 
 isco_rollback :- isco_connection(C), isco_rollback(C).
 isco_rollback(C) :-
-	isco_be_exec(C, 'rollback transaction', R),
+	isco_be_exec(C, "rollback transaction", R),
 	isco_be_fetch(C, R).
 
 isco_atomic(C, GOAL) :-
@@ -395,13 +395,19 @@ isco_mask_to_var_list(1, 0, _, _, _, VL, VL) :- !.
 isco_mask_to_var_list(N, NV, MASK, CNAME, HEAD, VL, VLo) :-
 	N1 is N-1,
 	isco_mask_to_var_list(N1, NV1, MASK, CNAME, HEAD, VLi, VLo),
-	( 0 is MASK /\ (1<<N1) ->
+	( 0 is MASK /\ (1<<N1) ->		% field unused
 	    VL = VLi,
 	    NV1 = NV
-	; isco_field(CNAME, FNAME, N1, _TYPE),
-	  arg(N, HEAD, VAR),
-	  VL = [f(FNAME,NV,VAR)|VLi],
-	  NV is NV1+1 ).
+	;					% field used
+	    isco_field(CNAME, FNAME, N1, NFAKES, FAKE, _TYPE),
+	    ( FAKE = fake ->			% fake field
+		VL = VLi,	
+		NV = NV1
+	    ;
+		arg(N, HEAD, VAR),
+		VL = [f(FNAME,NV,VAR)|VLi],
+		NV is NV1+1,
+		NVK is NV-NFAKES ) ).
 
 
 isco_var_list_to_select(VARLIST, _, SELECT) :- % backward compatibility.
@@ -413,7 +419,7 @@ isco_var_list_to_select(VARLIST, SELECT) :-
 
 isco_var_list_to_select([], _, SEL, SEL).
 isco_var_list_to_select([f(FNAME,_,_)|Fs], SPF, SELECT, SELECTo) :-
-	format_to_codes(SELECTi, "~s~so.~w", [SELECT, SPF, FNAME]),
+	format_to_codes(SELECTi, '~s~so.~w', [SELECT, SPF, FNAME]),
 	isco_var_list_to_select(Fs, ", ", SELECTi, SELECTo).
 
 
@@ -421,7 +427,11 @@ isco_var_list_to_select([f(FNAME,_,_)|Fs], SPF, SELECT, SELECTo) :-
 
 % -- Get argument from correct position ---------------------------------------
 
-isco_be_get_arg(0, _, P, CH, SH, OTn, CONV, V, T, _) :-
+%%DBG isco_be_get_arg(A, B, C, D, E, F, G, H, I, J) :- %%DBG
+%%DBG 	write(isco_be_get_arg(A, B, C, D, E, F, G, H, I, J)), nl, fail.	%%DBG
+
+isco_be_get_arg(MASK, _, P, CH, SH, OTn, CONV, V, T, _) :-
+	MASK =< 0,				% includes 0 and -1
 	!,
 	isco_be_get_data(CH, SH, P, OTn, Vx),
 	( CONV=yes -> isco_odbc_conv(T, Vx, V) ; V=Vx ).
@@ -466,7 +476,11 @@ isco_has_subclass(SUPER, SUB) :-
 	isco_has_subclass(SUPER, MID).
 
 
-% -- Specialized "term_expansion/2" for ISCO predicates -----------------------
+isco_tablename(CNAME, CNAME) :- isco_classtype(CNAME, regular), !.
+isco_tablename(CNAME, TNAME) :- isco_classtype(CNAME, external(_, TNAME)), !.
+
+
+% == Specialized "term_expansion/2" for ISCO predicates =======================
 
 % -- ISCO/Prolog update goal call ---------------------------------------------
 
@@ -541,7 +555,7 @@ isco_term_expansion((RELNAME := NEWARGS), GOAL) :-
 
 isco_term_expansion((RELNAME_ARGS := NEWARGS), GOAL) :-
 	functor(RELNAME_ARGS, RELNAME, _NUMARGS), % what relation is this?
-	isco_class(RELNAME, NUMARGS),		% do we know about it?
+	isco_class(RELNAME, _),			% do we know about it?
 	!,
 	RELNAME_ARGS =.. [_ | ARGLIST],
 	isco_arglist_to_args(ARGLIST, ARGS),
@@ -652,6 +666,9 @@ isco_tsort_level(M, PX, N, X) :-
 % -----------------------------------------------------------------------------
 
 % $Log$
+% Revision 1.12  2003/03/16 09:22:25  spa
+% Transaction code fixed (patch by Gonçalo Marrafa <gjm@sc.uevora.pt>).
+%
 % Revision 1.11  2003/03/10 22:18:34  spa
 % Don't forget about args in REL(ARGS):=NEWARGS.
 %
@@ -823,4 +840,5 @@ isco_tsort_level(M, PX, N, X) :-
 % Local Variables:
 % mode: prolog
 % mode: font-lock
+% comment-column: 48
 % End:
