@@ -1,3 +1,27 @@
+isco (2.2-1) unstable; urgency=low
+
+  * New release.
+  * Started to work on the back-end specific code generation framework.
+  * Implemented pg7, pg6, pg6class and sql back-ends.
+  * Fixes ODBC code generation for older PostgreSQL databases (no
+    tableoid, controlled descent through subclasses...) (closes: #18)
+  * Correct fix from version 2.1-11.
+  * Inheritance and predefined fields (oid and instanceOf) taken from
+    back-ends now.
+  * Modulate number of arguments in auxiliary clauses, to include oid and
+    instanceOf only when possible.
+  * sql-schema.pl: also assert generated facts for isco_classtype/2 so
+    they can be used within the compiler!
+  * sql-schema.pl: generate new isco_field_CLASS/4 instead of /3, which
+    include two "positions": one for ISCO and one for the back-end (allows
+    for fake arguments, such as oid in non-postgres databases.)
+  * runtime/runtime.pl: isco_mask_to_var_list/7: use isco_field/5.
+  * runtime/runtime.pl: transaction predicates should use strings, not
+    atoms.  Patch courtesy of Gonçalo Marrafa <gjm@sc.uevora.pt>
+  * depend on gprolog-odbc-cx with boolean support (1.0-6)
+
+ -- Salvador Abreu <spa@debian.org>  Sun, 16 Mar 2003 09:03:04 +0000
+
 isco (2.1-11) unstable; urgency=low
 
   * back-end/prolog.pl: in the "update" predicate generation: put "such

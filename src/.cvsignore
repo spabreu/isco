@@ -3,4 +3,5 @@ isco_lib_dir.pl
 revision.pl
 *.o
 isco-shell
+iscoc-shell
 iscoc
