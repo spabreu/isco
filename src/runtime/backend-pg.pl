@@ -28,6 +28,7 @@
 
 exec(Q, R) :- pq_exec(C, Q, R).
 fetch(_).
+
 %%DBG get_data(R,X,T,V) :- write(get_data(R,X,T,V)), nl, fail.
 get_data(R, X, term, V) :-
 	!,
@@ -36,10 +37,14 @@ get_data(R, X, term, V) :-
 				      [syntax_error(fail), end_of_term(eof)])
 	       ; V='' ), _, V='').
 get_data(R, X, T, V) :- pq_get_data(R, X, T, V).
+
 ntuples(R, N) :- pq_ntuples(R, N).
 oid(_R, O) :- pq_last_oid(C, O).
 
 % $Log$
+% Revision 1.4  2003/03/12 19:02:37  spa
+% *** empty log message ***
+%
 % Revision 1.3  2003/03/07 09:59:58  spa
 % term type.
 % delete done as select(oid)+delete(oid).
