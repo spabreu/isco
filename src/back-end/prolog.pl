@@ -24,7 +24,7 @@
 
 % == Prolog code generation (clauses) for ISCO ================================
 
-:- unit(isco_prolog(ST)).
+:- unit(prolog(ST)).
 
 emit :- DASH="=",
 	format_to_atom(C, "%% ~2c ISCO clause definitions. ", [DASH]),
@@ -205,7 +205,7 @@ isco_prolog_class_body(Vs, RNAME, HEAD, GOAL, CH, OC_VAR+MASK) :-
 	isco_where_clause(Vs, CH, G1, G2, SQLin, SQLout),
 	G2 = (append(SQLout, OC_VAR, SQLfinal),
 	      ( g_read(isco_debug_sql, 1) ->
-		  format('sql: ~s~n', [SQLfinal]) ; true ),
+		  format('sql(~w): ~s~n', [CH, SQLfinal]) ; true ),
 	      isco_be_exec(CH, SQLfinal, SH),
 	      isco_be_ntuples(CH, SH, NT),
 	      g_assign(isco_ntuples, NT),
@@ -327,7 +327,7 @@ isco_prolog_code_insert(_, _, _, _, _).
 isco_prolog_code_insert_body(_CN, _NET, [], _, Q, _HEAD, BODY, CH, OID) :-
 	BODY = (append(Q, ")", QF),
 		   ( g_read(isco_debug_sql, 1) ->
-		       format('sql: ~s~n', [QF]) ; true ),
+		       format('sql(~w): ~s~n', [CH, QF]) ; true ),
 		   isco_be_exec(CH, QF, R),
 		   isco_be_oid(CH, R, OID)).
 
@@ -381,7 +381,7 @@ isco_prolog_code_delete(CNAME, NET, NFs, Fs) :-
 	Bdelete = (
 	    format_to_codes(QUERYd, 'delete from ~w where oid=~w', [IOF, OID]),
 	    ( g_read(isco_debug_sql, 1) ->
-	      format('sql: ~s~n', [QUERYd]) ; true ),
+	      format('sql(~w): ~s~n', [CH, QUERYd]) ; true ),
 	    isco_be_exec(CH, QUERYd, _) ),
 	BODY = (Bselect, Bdelete),
 	% ---------------------------------------------------------------------
@@ -447,11 +447,11 @@ isco_prolog_code_update(CNAME, NET, NFs, Fs) :-
 		 format_to_codes(Q0, 'update ~w set', [IOF]),
 		 B1)),
 	H_S =.. [CNAME, _, _ | HA_S],		% head for SET (fake OID, IOF).
-	isco_update_set(NFsm2, Fs, H_S, B1, B2, Q0, Q1),
 	B2 = ((call(HA_G) ->
+	       isco_update_set(NFsm2, Fs, H_S, B1, B2, Q0, Q1),
 	       format_to_codes(QUERY, '~s where oid=~w', [Q1, OID]),
 	       ( g_read(isco_debug_sql, 1) ->
-		   format('sql: ~s~n', [QUERY]) ; true ),
+		   format('sql(~w): ~s~n', [CH, QUERY]) ; true ),
 	       isco_be_exec(CH, QUERY, _SH)
 	      ;	  fail )),
 	nl,
@@ -508,7 +508,7 @@ isco_prolog_class_inheritance(CNAME, NET, _XDEF) :-
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 isco_auto_inheritance(isco, '*') :- !.	% be pessimistic, it does no harm.
-isco_auto_inheritance(odbc(_, postgres(V)), '') :- nonvar(V), V @>= '7.0', !.
+isco_auto_inheritance(odbc(_, postgres(V)), '') :- nonvar(V), V >= 7, !.
 isco_auto_inheritance(odbc(_, postgres(_)), '*') :- !.
 isco_auto_inheritance(odbc(_, postgres), '*') :- !.
 isco_auto_inheritance(PG, '*') :- nonvar(PG), PG=..[postgres|_], !.
@@ -522,7 +522,9 @@ isco_prolog_class_inheritance(CNAME, NET) :-
 	\+ ol_memberchk(final, ATTRs),
 	!,
 	lookup(NET, fields, fields=FIELDS),
-	ol_length(FIELDS, NF),
+	findall(NAME, ol_member(f(_,NAME,_,_), FIELDS), NAMEs),
+	sort(NAMEs, SNAMEs),			% remove dups
+	length(SNAMEs, NF),			% how many?
 	isco_prolog_class_inheritance_list(SUBCLASSES, CNAME, NF).
 isco_prolog_class_inheritance(_, _).
 
@@ -537,9 +539,11 @@ isco_prolog_class_inheritance_list([_|Cs], CNAME, NF) :-
 
 isco_prolog_class_inheritance_one(CN, SN, NF, NET) :-
 	lookup(NET, fields, fields=FIELDS),
-	ol_length(FIELDS, NFSUB),
-	NAH is NF+2,
-	NAB is NFSUB+2,
+	findall(NAME, ol_member(f(_,NAME,_,_), FIELDS), NAMEs),
+	sort(NAMEs, SNAMEs),			% remove dups
+	length(SNAMEs, NFSUB),			% how many?
+	NAH is NF+2,				% add CONN & MASK
+	NAB is NFSUB+2,				% same here...
 	functor(HEAD, CN, NAH),
 	functor(BODY, SN, NAB),
 	HEAD =.. [_|HA],
@@ -607,6 +611,12 @@ isco_prolog_sequence(NAME, ATTRs) :-
 % -----------------------------------------------------------------------------
 
 % $Log$
+% Revision 1.11  2003/03/12 19:10:40  spa
+% - Simplified unit name.
+% - Better SQL code display when debugging (indicate connection)
+% - Correct non-automatic inheritance (extra args were wrong)
+% - Call isco_update_set/7 after the "extra goal".
+%
 % Revision 1.10  2003/03/09 01:54:11  spa
 % New code for update!
 %
@@ -721,4 +731,5 @@ isco_prolog_sequence(NAME, ATTRs) :-
 % mode: prolog
 % mode: font-lock
 % mode: outline-minor
+% comment-column: 48
 % End:
