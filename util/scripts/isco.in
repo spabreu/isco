@@ -155,12 +155,12 @@ for IFILE in $IFILES; do
     PIFILE=${IFILE%.isco}.pl
   else
     PIFILE=$(tempfile -p isco -s .pl)
+    [ -z "$KEEP" ] && { PIFILES="$PIFILES$PISEP$PIFILE"; PISEP=" "; }
   fi
   [ -n "$VERBOSE" ] && echo 1>&2 $ISCOC -c $IFILE ">" $PIFILE
   $ISCOC -c $IFILE > $PIFILE
   FILES="$FILES$SEP$PIFILE"
   SEP=" "
-  [ -n "$COMPILE" ] && { PIFILES="$PIFILES$PISEP$PIFILE"; PISEP=" "; }
 done
 
 [ -z "$OUTPUT" ] && exit 0
