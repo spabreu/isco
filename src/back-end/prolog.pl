@@ -150,7 +150,7 @@ isco_prolog_internal_class(CNAME, NFs, Fs) :-
 	HEAD1 =.. [HF, CH | HA],
 	BODY1 = (isco_connection(CH), HEAD1),
 	append(HEAD0_, [_], [HF|HA]), HEAD0 =.. HEAD0_,
-	append(HEAD0_, [''+0], BODY0_), BODY0 =.. BODY0_,
+	append(HEAD0_, [[]+0], BODY0_), BODY0 =.. BODY0_,
 	portray_clause((HEAD0 :- BODY0)), nl,
 	portray_clause((HEAD :- BODY1)), nl,
 	portray_clause((HEAD1 :- BODY)), nl.
@@ -222,7 +222,7 @@ isco_prolog_external_class(CNAME, NFs, Fs, _XDEF, XID, XNAME) :-
 	HEAD1 =.. [HF, CH | HA],
 	BODY1 = (isco_connection(XID, CH), HEAD1),
 	append(HEAD0_, [_], [HF|HA]), HEAD0 =.. HEAD0_,
-	append(HEAD0_, [''+0], BODY0_), BODY0 =.. BODY0_,
+	append(HEAD0_, [[]+0], BODY0_), BODY0 =.. BODY0_,
 	portray_clause((HEAD0 :- BODY0)), nl,
 	portray_clause((HEAD :- BODY1)), nl,
 	portray_clause((HEAD1 :- BODY)), nl.
@@ -290,9 +290,9 @@ isco_prolog_code_insert(_, _, _, _, _).
 
 
 isco_prolog_code_insert_body(_CNAME, _NET, [], _, Q, _HEAD, BODY, CH) :-
-	BODY = (atom_concat(Q, ')', QF),
+	BODY = (append(Q, ")", QF),
 		( g_read(isco_debug_sql, 1) ->
-		    format('sql: ~w~n', [QF]) ; true ),
+		    format('sql: ~s~n', [QF]) ; true ),
 		isco_be_exec(CH, QF, _SH)).
 
 isco_prolog_code_insert_body(CNAME, NET, [F|Fs], P, Q, HEAD, BODY, CH) :-
@@ -308,8 +308,8 @@ isco_prolog_code_insert_body(CNAME, NET, [F|Fs], P, Q, HEAD, BODY, CH) :-
 		 isco_odbc_format(TYPE, Vout, V),
 		 BODY2),
 	( var(P) ->
-	    BODY2 = (format_to_atom(Qx, '~w (~w', [Q, V]), BODY1), P=comma
-	;   BODY2 = (format_to_atom(Qx, '~w, ~w', [Q, V]), BODY1) ),
+	    BODY2 = (format_to_codes(Qx, '~s (~s', [Q, V]), BODY1), P=comma
+	;   BODY2 = (format_to_codes(Qx, '~s, ~s', [Q, V]), BODY1) ),
 	isco_prolog_code_insert_body(CNAME, NET, Fs, P, Qx, HEAD, BODY1, CH).
 
 % -- Generate code to delete a tuple ------------------------------------------
@@ -576,8 +576,11 @@ isco_prolog_sequence(NAME, ATTRs) :-
 % -----------------------------------------------------------------------------
 
 % $Log$
-% Revision 1.1  2003/01/06 14:27:21  spa
-% Initial revision
+% Revision 1.2  2003/01/17 14:48:09  spa
+% isco_prolog_code_insert_body/8: use strings instead of atoms.
+%
+% Revision 1.1.1.1  2003/01/06 14:27:21  spa
+% Imported into CVS
 %
 % Revision 1.22  2001/08/24 22:28:57  spa
 % Add support for retrieving sequence numbers when inserting new tuples.
