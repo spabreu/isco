@@ -38,12 +38,15 @@ all: $(PROG)
 
 install: all
 	[ -d $(DESTDIR) ] || mkdir -p $(DESTDIR)
-	$(INSTALL) -m 555 $(PROG) $(DESTDIR)/prog
+	$(INSTALL) -m 555 $(PROG) $(DESTDIR)/$(PROG)
 
 clean:
 	rm -f *~ \#* *.o
 
 # $Log$
+# Revision 1.4  2003/01/07 18:07:32  spa
+# Changes to makefiles...
+#
 # Revision 1.3  2003/01/07 00:13:26  spa
 # *** empty log message ***
 #

@@ -1,3 +1,10 @@
+isco (2.0-0.2) unstable; urgency=low
+
+  * now under CVS
+  * added proper configure.in
+
+ -- Salvador Abreu <spa@debian.org>  Mon,  6 Jan 2003 21:48:28 +0000
+
 isco (2.0-0.1) unstable; urgency=low
 
   * New version based on gprolog-cx.

@@ -3,6 +3,6 @@
 *~
 iscoc
 isco-shell
-configure.*
+config.*
 auto*
 Makefile

@@ -6,7 +6,9 @@ package=isco
 
 build:
 	$(checkdir)
-	make -C src all PREFIX=/usr
+	autoconf
+	configure --prefix=/usr
+	make all
 	touch build
 
 clean:
@@ -28,8 +30,9 @@ binary-arch: checkroot build
 	cd debian/tmp && install -d `cat ../dirs`
 	make -C src install PREFIX=../debian/tmp/usr SUBDIRS=""
 	make -C util/schema-parser install PREFIX=../../debian/tmp/usr
+	make -C util/scripts install PREFIX=../../debian/tmp/usr
 	dh_installdocs COPYRIGHT RELEASE TODO
-	dh_installchangelogs ChangeLog
+	#dh_installchangelogs changelog
 	install -m 644 debian/dhelp debian/tmp/usr/share/doc/$(package)/.dhelp
 	install -m 644 debian/dwww-index \
 		debian/tmp/usr/share/doc/$(package)/.dwww-index

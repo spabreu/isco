@@ -30,6 +30,7 @@ JFLAGS = -g
 
 CUP    = cup
 JLEX   = jlex
+INSTALL = /usr/bin/install -c
 
 JFILES = sym.java \
 	$(subst .cup,.java,$(wildcard *.cup)) \
@@ -38,9 +39,9 @@ CLASSFILES = Main.class $(subst .java,.class,$(JFILES))
 
 PROGNAME = sql2isco
 
-PREFIX = /usr/local
+PREFIX = /usr
 LIBDIR = $(PREFIX)/lib/isco/$(PROGNAME)
-BINDIR = $(PREFIX)/bin
+DESTDIR = $(PREFIX)/bin
 
 %.class: %.java
 	CLASSPATH=$(CPATH) $(JAVAC) $(JFLAGS) $<
@@ -63,12 +64,12 @@ all: $(JFILES) $(CLASSFILES) stack-to-isco $(PROGNAME)
 
 install: all
 	mkdir -p $(LIBDIR)
-	install -c -m 444 *.class $(LIBDIR)
-	install -c -m 555 stack-to-isco $(LIBDIR)
-	install -c -m 555 $(PROGNAME) $(BINDIR)
+	$(INSTALL) -m 444 *.class $(LIBDIR)
+	$(INSTALL) -m 555 stack-to-isco $(LIBDIR)
+	$(INSTALL) -m 555 $(PROGNAME) $(DESTDIR)
 
 $(PROGNAME): $(PROGNAME).sh
-	sed -e 's;@LIBDIR@;'$(LIBDIR)';g' < $< > $@
+	sed -e 's;@LIBDIR@;'$(subst ../debian/tmp,,$(LIBDIR))';g' < $< > $@
 	chmod a+rx $@
 
 run: all
@@ -86,33 +87,8 @@ clean:
 	find -name \*~ -o -name \#* | xargs rm -f
 
 # $Log$
-# Revision 1.2  2003/01/06 15:15:01  spa
-# *** empty log message ***
-#
-# Revision 1.1.1.1  2003/01/06 14:27:13  spa
-# Imported into CVS
-#
-# Revision 1.1.1.1  2002/11/23 01:50:02  spa
-# Created module
-#
-# Revision 1.6  2001/04/30 22:43:55  spa
-# no -depends for javac.
-#
-# Revision 1.5  2001/04/30 13:06:17  spa
-# DESTDIR now LIBDIR.  Changed location as well.
-#
-# Revision 1.4  2001/04/29 22:08:36  spa
-# Fix "make clean".
-#
-# Revision 1.3  2001/04/29 22:07:57  spa
-# Now installs as program "sql2isco".
-#
-# Revision 1.2  2001/04/19 12:55:27  spa
-# Copyright.
-# Various fixes.
-#
-# Revision 1.1  2001/04/12 16:34:05  spa
-# *** empty log message ***
+# Revision 1.3  2003/01/07 18:07:32  spa
+# Changes to makefiles...
 #
 
 # Local Variables:
