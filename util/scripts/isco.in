@@ -83,6 +83,7 @@ PISEP=""
 
 COMPILE=
 KEEP=
+VERBOSE=
 while [ ! -z "$1" ]; do
   case $1 in
 
@@ -108,6 +109,10 @@ EOF
 
   -k|--keep)
     KEEP=yes;
+    shift;;
+
+  -v|--verbose)
+    VERBOSE=yes;
     shift;;
 
   -*)
@@ -148,6 +153,7 @@ export LC_ALL
 for IFILE in $IFILES; do
   [ -n "$COMPILE" ] && PIFILE=${IFILE%.isco}.pl
   [ -z "$COMPILE" ] && PIFILE=$(tempfile -p isco -s .pl)
+  [ -n "$VERBOSE" ] && echo $ISCOC -c $IFILE ">" $PIFILE
   $ISCOC -c $IFILE > $PIFILE
   FILES="$FILES$SEP$IFILE"
   SEP=" "
@@ -157,10 +163,13 @@ done
 
 [ -z "$OUTPUT" ] && exit 0
 
-echo $GPLC -o $OUTPUT $PREFIX $FILES $SUFFIX
+[ -n "$VERBOSE" ] && echo $GPLC -o $OUTPUT $PREFIX $FILES $SUFFIX
 $GPLC -o $OUTPUT $PREFIX $FILES $SUFFIX
 
-[ -z "$KEEP" -a -n "$PIFILES" ] && rm -f $PIFILES
+[ -z "$KEEP" -a -n "$PIFILES" ] && {
+    [ -n "$VERBOSE" ] && echo rm -f $PIFILES
+    rm -f $PIFILES
+}
 
 # Local Variables:
 # mode: shell-script
