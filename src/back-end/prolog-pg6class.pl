@@ -28,7 +28,11 @@ isco_prolog_class_body(Vs, CNAME, RNAME, HEAD, GOAL, CH, OC_VAR+MASK) :-
 	  isco_mask_to_var_list(HEAD, _, MASK1, VL1),
 	  reverse(VL1, VL1r),
 	  isco_var_list_to_select(VL1r, ", ", "", SELf),
-	  format_to_codes(SQLin, 'select o.oid, o.classe as instanceOf~s from ~w* o', [SELf, RNAME]),
+	  ( isco_field(CNAME, classe, text, _) ->
+	      CLASSE=', o.classe as instanceOf'
+	  ;   CLASSE='' ),
+	  format_to_codes(SQLin, 'select o.oid~w~s from ~w* o',
+			  [CLASSE, SELf, RNAME]),
 	  G1 ),
 	isco_where_clause(Vs, CH, G1, G2, SQLin, SQLout),
 	G2 = (append(SQLout, OC_VAR, SQLfinal),
@@ -43,10 +47,15 @@ isco_prolog_class_body(Vs, CNAME, RNAME, HEAD, GOAL, CH, OC_VAR+MASK) :-
 
 isco_prolog_class_body_fields(EOV, true, _, _, _, _, _) :- var(EOV), !.
 isco_prolog_class_body_fields([], true, _, _, _, _, _).
+isco_prolog_class_body_fields([_=f(V,N,_)|VARs], GOAL, CH, SH, VL, MASK, CN) :-
+	N = instanceOf, \+ isco_field(CN, classe, text, _), !,
+	GOAL = (V=CN, Gs),
+	isco_prolog_class_body_fields(VARs, Gs, CH, SH, VL, MASK, CN).
 isco_prolog_class_body_fields([P=f(V,N,T)|VARs], GOAL, CH, SH, VL, MASK, CN) :-
 	isco_odbc_type(T, OT), odbc_type(OT, OTn),
 	( isco_odbc_conv(T) -> CONV=yes ; CONV=no ),
-	G1 = isco_be_get_arg(MASK, N, P, CH, SH, OTn, CONV, Vx, T, VL),
+	( P > 1, \+ isco_field(CN, classe, text, _) -> PX is P-1 ; PX=P ),
+	G1 = isco_be_get_arg(MASK, N, PX, CH, SH, OTn, CONV, Vx, T, VL),
 	( N = instanceOf, isco_classtype(CN, external(_, _)) ->
 	    GOAL = ( G1, isco_tablename(V, Vx), Gs )
 	;   Vx = V, GOAL = ( G1, Gs ) ),

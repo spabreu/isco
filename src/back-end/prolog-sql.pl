@@ -43,7 +43,7 @@ isco_prolog_class_body(Vs, CNAME, RNAME, HEAD, GOAL, CH, OC_VAR+MASK) :-
 isco_prolog_class_body_fields(EOV, true, _, _, _, _, _) :- var(EOV), !.
 isco_prolog_class_body_fields([], true, _, _, _, _, _).
 isco_prolog_class_body_fields([_=f(V,N,_)|VARs], GOAL, CH, SH, VL, MASK, CN) :-
-	N = OID, !,
+	N = oid, !,
 	GOAL = (V=0, Gs),
 	isco_prolog_class_body_fields(VARs, Gs, CH, SH, VL, MASK, CN).
 isco_prolog_class_body_fields([_=f(V,N,_)|VARs], GOAL, CH, SH, VL, MASK, CN) :-
@@ -53,7 +53,8 @@ isco_prolog_class_body_fields([_=f(V,N,_)|VARs], GOAL, CH, SH, VL, MASK, CN) :-
 isco_prolog_class_body_fields([P=f(V,N,T)|VARs], GOAL, CH, SH, VL, MASK, CN) :-
 	isco_odbc_type(T, OT), odbc_type(OT, OTn),
 	( isco_odbc_conv(T) -> CONV=yes ; CONV=no ),
-	GOAL = (isco_be_get_arg(MASK, N, P, CH, SH, OTn, CONV, V, T, VL), Gs),
+	PX is P-2,
+	GOAL = (isco_be_get_arg(MASK, N, PX, CH, SH, OTn, CONV, V, T, VL), Gs),
 	isco_prolog_class_body_fields(VARs, Gs, CH, SH, VL, MASK, CN).
 
 
