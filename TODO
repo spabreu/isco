@@ -52,10 +52,11 @@ Use CxLP!
 *** ODBC/psql 6
 *** ODBC/psql 7
 *** ODBC/oracle
-*** psql 7
+*** native psql 7
 *** LDAP
 *** SNMP
 *** DNS
+*** native MySQL
 ** ORDER BY clause
 *** Syntax
 *** Implementation
