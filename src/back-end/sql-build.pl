@@ -188,6 +188,9 @@ isco_sql_extra_stuff(_, _).
 % -----------------------------------------------------------------------------
 
 % $Log$
+% Revision 1.1  2003/03/30 22:58:13  spa
+% Rename sql.pl to sql-build.pl, to avoid collision with code/sql.pl.
+%
 % Revision 1.4  2003/03/12 19:05:25  spa
 % - new predicates build/0, /1 and /2: like emit/0 but they actually call the
 %   back-end to create the tables, etc.
