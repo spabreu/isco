@@ -65,7 +65,7 @@ isco_prolog_class(CNAME, NET) :-		% external DB classes
 	( lookup(ST, external(XID), external(_)=XDEF) ->
 	    atom_concat('isco_', XID, ISCO_XID),
 	    isco_prolog_external_class(CNAME, NFs, FF, XDEF, ISCO_XID, XNAME),
-	    isco_prolog_class_inheritance(CNAME, NET, XDEF),
+	    isco_prolog_class_inheritance(CNAME, NET),
 	    isco_prolog_code_update(CNAME, NET, NFs, FF),
 	    isco_prolog_code_delete(CNAME, NET, NFs, FF),
 	    isco_prolog_code_insert(CNAME, NET, NFs, FF)
@@ -87,7 +87,7 @@ isco_prolog_class(CNAME, NET) :-		% regular class
 	ol_length(FF, NFs), !,
 	isco_prolog_class_header(regular, CNAME, NET),
 	isco_prolog_internal_class(CNAME, NFs, Fs),
-	isco_prolog_class_inheritance(CNAME, NET, isco),
+	isco_prolog_class_inheritance(CNAME, NET),
 	isco_prolog_code_update(CNAME, NET, NFs, FF),
 	isco_prolog_code_delete(CNAME, NET, NFs, FF),
 	isco_prolog_code_insert(CNAME, NET, NFs, FF),
@@ -128,7 +128,7 @@ isco_prolog_class_header_fields(Fs) :- var(Fs), !.
 isco_prolog_class_header_fields([]) :- !.
 isco_prolog_class_header_fields([f(NUM,NAME,TYPE,ATTRs)|Fs]) :-
 	isco_prolog_class_header_fields(Fs), !,
-	( lookup(ATTRs, dupe, dupe=yes) -> true
+	( ol_memberchk(dupe, ATTRs) -> true
 	;   format("%%    ~2w. ~w: ~w.~n", [NUM, NAME, TYPE]) ).
 
 
@@ -146,21 +146,60 @@ isco_prolog_computed_class_rule(HEAD, BODY) :-
 % -- Generate code to access a regular class ----------------------------------
 
 isco_prolog_internal_class(CNAME, NFs, Fs) :-
-	isco_prolog_class_head(CNAME, NFs, Fs, HEAD, VARs, OC_VAR),
-	isco_prolog_class_body(VARs, CNAME, HEAD, BODY, CH, OC_VAR),
+	pg7 :> (
+	  isco_prolog_class_head(CNAME, NFs, Fs, HEAD, VARs, OC_VAR),
+	  isco_prolog_class_body(VARs, CNAME, CNAME, HEAD, BODY, CH, OC_VAR) ),
 	HEAD =.. [HF | HA],
 	HEAD1 =.. [HF, CH | HA],
 	BODY1 = (isco_connection(CH), HEAD1),
 	append(HEAD0_, [_], [HF|HA]), HEAD0 =.. HEAD0_,
 	append(HEAD0_, [[]+0], BODY0_), BODY0 =.. BODY0_,
-	HEAD0 =.. [HPx, _, _ | HAx],	% includes oid and instanceOf
-	HEADx =.. [HPx | HAx],
 	BODYx = HEAD0,
+	HEAD0 =.. [HPx, _, _ | HAx],
+	HEADx =.. [HPx | HAx],
 	portray_clause((HEADx :- BODYx)), nl,
 	portray_clause((HEAD0 :- BODY0)), nl,
 	portray_clause((HEAD :- BODY1)), nl,
 	portray_clause((HEAD1 :- BODY)), nl.
 
+
+% -- Generate code for external database declarations -------------------------
+
+isco_prolog_external(SPEC, NAME, ISCO_NAME) :-
+%%DBG	format('%% (~w)\n', [isco_prolog_external(SPEC, NAME, ISCO_NAME)]),
+	format_to_atom(COMMENT, "%% -- Access to ~w external database. ",
+			    [NAME]),
+	atom_length(COMMENT, CLENGTH),
+	format("~n~w~*c~n", [COMMENT, 79-CLENGTH, "-"]),
+	isco_prolog_external(SPEC, ISCO_NAME, HEAD, BODY),
+	nl,
+	portray_clause((HEAD :- BODY)),
+	nl.
+
+
+% -- Generate code to access an external database -----------------------------
+
+isco_prolog_external_class(CNAME, NFs, Fs, _XDEF, XID, XNAME) :-
+%%DBG	format('%% (~w)\n', [isco_prolog_external_class(CNAME, NFs, Fs, _XDEF, XID, XNAME)]), %%DBG
+	isco_locate_generator(CNAME, GEN),
+	GEN :> (
+	  isco_prolog_class_head(CNAME, NFs, Fs, HEAD, VARs, OC_VAR),
+	  isco_prolog_class_body(VARs, CNAME, XNAME, HEAD, BODY, CH, OC_VAR) ),
+	HEAD =.. [HF | HA],
+	HEAD1 =.. [HF, CH | HA],
+	BODY1 = (isco_connection(XID, CH), HEAD1),
+	append(HEAD0_, [_], [HF|HA]), HEAD0 =.. HEAD0_,
+	append(HEAD0_, [[]+0], BODY0_), BODY0 =.. BODY0_,
+	BODYx = HEAD0,
+	HEAD0 =.. [HPx, _, _ | HAx],
+	HEADx =.. [HPx | HAx],
+	portray_clause((HEADx :- BODYx)), nl,
+	portray_clause((HEAD0 :- BODY0)), nl,
+	portray_clause((HEAD :- BODY1)), nl,
+	portray_clause((HEAD1 :- BODY)), nl.
+
+
+% -----------------------------------------------------------------------------
 
 isco_prolog_class_head(CNAME, NFs, Fs, HEAD, HVARs, OC_VAR) :-
 	NFs1 is NFs+1,
@@ -177,97 +216,64 @@ isco_prolog_ichf([f(NUM,NAME,TYPE,_)|Fs], HEAD, HVARs) :-
 	isco_prolog_ichf(Fs, HEAD, HVARs).
 
 
-% -- isco_prolog_class_body(Vs, RNAME, HEAD, GOAL, CH, OC_VAR+MASK) -----------
-%
-% Generate the class head and body for the "select" function.  Parameters:
-% Vs -> list of variables
-%       ( from the symbol table, as a list of POS=f(VAR,NAME,TYPE)
-% RNAME -> relation name
-% HEAD, GOAL -> clause head and body, resp.
-% CH -> back-end channel variable
-% OC_VAR -> ORDER BY clause
-% MASK -> output variable selection mask
-
-isco_prolog_class_body(Vs, RNAME, HEAD, GOAL, CH, OC_VAR+MASK) :-
-	functor(HEAD,CNAME,_),
-	( isco_database_type(CNAME, DBTYPE, ST),
-	  isco_auto_inheritance(DBTYPE, DESCEND) -> true ; DESCEND='' ),
-	GOAL = (
-	  ( MASK = 0 -> NMASK = -1 ; NMASK=MASK ),
-	  MASK1 is NMASK /\ \6, % 6 is: 2 forced args (2^N-1)<<1
-	  MASK2 is NMASK \/ 6,
-	  isco_mask_to_var_list(HEAD, _, MASK2, VL),
-	  isco_mask_to_var_list(HEAD, _, MASK1, VL1),
-	  reverse(VL1, VL1r),
-	  isco_var_list_to_select(VL1r, ", ", "", SELf),
-	  format_to_codes(SQLin, 'select o.oid, c.relname as instanceOf~s from ~w~w o, pg_class c where c.oid=o.tableoid', [SELf, RNAME, DESCEND]),
-	  G1 ),
-	isco_where_clause(Vs, CH, G1, G2, SQLin, SQLout),
-	G2 = (append(SQLout, OC_VAR, SQLfinal),
-	      ( g_read(isco_debug_sql, 1) ->
-		  format('sql(~w): ~s~n', [CH, SQLfinal]) ; true ),
-	      isco_be_exec(CH, SQLfinal, SH),
-	      isco_be_ntuples(CH, SH, NT),
-	      g_assign(isco_ntuples, NT),
-	      isco_be_fetch(CH, SH),
-	      BODY),
-	isco_prolog_class_body_fields(Vs, BODY, CH, SH, VL, MASK2).
-
-isco_prolog_class_body_fields(EOV, true, _, _, _, _) :- var(EOV), !.
-isco_prolog_class_body_fields([], true, _, _, _, _).
-isco_prolog_class_body_fields([P=f(V,N,T)|VARs], GOAL, CH, SH, VL, MASK) :-
-	isco_odbc_type(T, OT), odbc_type(OT, OTn),
-	( isco_odbc_conv(T) -> CONV=yes ; CONV=no ),
-	GOAL = (isco_be_get_arg(MASK, N, P, CH, SH, OTn, CONV, V, T, VL), Gs),
-	isco_prolog_class_body_fields(VARs, Gs, CH, SH, VL, MASK).
-
-
 % -- SQL WHERE clause generation ----------------------------------------------
-
-isco_where_clause(Vs, C, Gin, Gout, SQLin, SQLout) :-
-	isco_where_clause(Vs, C, 'and', _, Gin, Gout, SQLin, SQLout).
-%	isco_where_clause(Vs, C, 'where', _, Gin, Gout, SQLin, SQLout).
+%
+% There's a generator-specific isco_where_clause/7 which calls this one with
+% appropriate arguments.
 
 
 isco_where_clause(Vs, _, P, P, G, G, WC, WC) :- var(Vs), !.
 isco_where_clause([], _, P, P, G, G, WC, WC).
+isco_where_clause([_=f(_,oid,_)|Vs], C, Pi, Po, Gi, Go, WCi, WCo) :-
+	\+ has(oid), !,
+	isco_where_clause(Vs, C, Pi, Po, Gi, Go, WCi, WCo).
+isco_where_clause([_=f(_,instanceOf,_)|Vs], C, Pi, Po, Gi, Go, WCi, WCo) :-
+	\+ has(instanceOf), !,
+	isco_where_clause(Vs, C, Pi, Po, Gi, Go, WCi, WCo).
 isco_where_clause([_P=f(V,N,T)|Vs], C, Pin, Pout, Gin, Gout, WCin, WCout) :-
 	Gin = (isco_where_var(C, V, N, T, Pin, Pint, WCin, WCint), Gint),
 	isco_where_clause(Vs, C, Pint, Pout, Gint, Gout, WCint, WCout).
 
+% -- Locate generator unit for specific external method -----------------------
 
+isco_locate_generator(CNAME, GEN) :-
+	isco_database_type(CNAME, METHOD0, ST),
+	isco_method(METHOD0, _TRANSPORT, GEN).
 
-% -- Generate code to access an external database -----------------------------
+% -- isco_method(+SPEC, -TRANSPORT, -METHOD) ----------------------------------
+%
+% TRANSPORT determines how the connection will be setup
+% METHOD determines which unit will generate SQL (or other) code
 
-isco_prolog_external_class(CNAME, NFs, Fs, _XDEF, XID, XNAME) :-
-	isco_prolog_class_head(CNAME, NFs, Fs, HEAD, VARs, OC_VAR),
-	isco_prolog_class_body(VARs, XNAME, HEAD, BODY, CH, OC_VAR),
-	HEAD =.. [HF | HA],
-	HEAD1 =.. [HF, CH | HA],
-	BODY1 = (isco_connection(XID, CH), HEAD1),
-	append(HEAD0_, [_], [HF|HA]), HEAD0 =.. HEAD0_,
-	append(HEAD0_, [[]+0], BODY0_), BODY0 =.. BODY0_,
-	HEAD0 =.. [HPx, _, _ | HAx],	% includes oid and instanceOf
-	HEADx =.. [HPx | HAx],
-	BODYx = HEAD0,
-	portray_clause((HEADx :- BODYx)), nl,
-	portray_clause((HEAD0 :- BODY0)), nl,
-	portray_clause((HEAD :- BODY1)), nl,
-	portray_clause((HEAD1 :- BODY)), nl.
+isco_method(isco, postgres(DB), pg7) :-		% built-in database
+	g_read(isco_default_database, DBATOM),
+	name(DBATOM, DB).
 
+isco_method(odbc(DB), odbc(DB), sql).
+isco_method(odbc(DB, METHOD), odbc(DB), METHOD).
+isco_method(postgres(DB), postgres("", DB), pg6).
+isco_method(postgres(DB, HOST), postgres(HOST, DB), pg6).
 
-% -- Generate code for external database declarations -------------------------
+isco_method(ITEMS, TRANSPORT, METHOD) :-	% fallback (preferred)
+	lookup(ITEMS, transport, transport=TRANSPORT),
+	lookup(ITEMS, method, method=METHOD).
 
-isco_prolog_external(SPEC, NAME, ISCO_NAME) :-
-	format_to_atom(COMMENT, "%% -- Access to ~w external database. ",
-			    [NAME]),
-	atom_length(COMMENT, CLENGTH),
-	format("~n~w~*c~n", [COMMENT, 79-CLENGTH, "-"]),
-	isco_prolog_external(SPEC, ISCO_NAME, HEAD, BODY),
-	nl,
-	portray_clause((HEAD :- BODY)),
-	nl.
-
+% -- External specs: ----------------------------------------------------------
+%
+% (TBD) One or more of the following:
+%
+% db(DBNAME)
+% db(DBNAME)
+%
+% dialect(DIALECT)
+%
+% connection(TYPE)
+% connection(TYPE, HOST)
+%
+% DBNAME is an atom with the database name (or DSN)
+% DIALECT is a description of the SQL back-end to use when generating code
+% TYPE is the connection type (odbc, pg, ...)
+% HOST is an accessory hostname to use, if needed
 
 isco_prolog_external(odbc(DB), ISCO_NAME, HEAD, BODY) :-
 	HEAD=isco_setup_connection(ISCO_NAME, odbc(H)),
@@ -288,6 +294,13 @@ isco_prolog_external(postgres(DB, HOST), ISCO_NAME, HEAD, BODY) :-
 	name(HOST, HOSTCODES),
 	BODY=pq_open(HOSTCODES, 0, DBCODES, H).
 
+isco_prolog_external([transport=TRANSPORT|_], ISCO_NAME, HEAD, BODY) :-
+	isco_prolog_external(TRANSPORT, ISCO_NAME, HEAD, BODY), !.
+
+isco_prolog_external([_|TRs], ISCO_NAME, HEAD, BODY) :-
+	isco_prolog_external(TRs, ISCO_NAME, HEAD, BODY).
+
+
 
 % -- Generate code to insert a new tuple --------------------------------------
 
@@ -298,7 +311,7 @@ isco_prolog_code_insert(CNAME, NET, NFs, Fs) :-
 	( ol_memberchk(external(XID, XNAME), As) ; XID=isco, XNAME=CNAME ),
 	!,
 %	isco_skip_fields(Fs, skip=yes, Fs1),	% w/o instanceOf
-	isco_skip_fields(Fs, hidden=yes, Fs2),	% w/o instanceOf and oid
+	isco_skip_fields(Fs, hidden, Fs2),	% w/o instanceOf and oid
 %%DBG	format('%% [isco_skip_fields IN: ~w]\n', [Fs]), %%DBG
 %%DBG	format('%% [isco_skip_fields OUT1: ~w]\n', [Fs1]), %%DBG
 %%DBG	format('%% [isco_skip_fields OUT2: ~w]\n', [Fs2]), %%DBG
@@ -340,7 +353,7 @@ isco_prolog_code_insert_body(CN, NET, [F|Fs], P, Q, HEAD, BODY, CH, O) :-
 	    BODY = (BODY0,
 		    ( var(Vin) -> SEQ_CURR_GOAL ; true ) )
 	; BODY = BODY0 ),
-	( ol_memberchk(hidden=yes, ATTRs) ->
+	( ol_memberchk(hidden, ATTRs) ->
 	    BODY0 = BODY1,
 	    Qx = Q
 	;
@@ -366,8 +379,10 @@ isco_prolog_code_delete(CNAME, NET, NFs, Fs) :-
 	!,
 	% ---------------------------------------------------------------------
 	atom_concat('isco_delete__', CNAME, ISCO_NAME),
-	isco_prolog_class_head(CNAME, NFs, Fs, HEAD0, VARs, OC_VAR),
-	isco_prolog_class_body(VARs, XNAME, HEAD0, Bselect, CH, OC_VAR),
+	isco_locate_generator(CNAME, GEN),
+	GEN :> (
+	  isco_prolog_class_head(CNAME, NFs, Fs, HEAD0, VARs, OC_VAR),
+	  isco_prolog_class_body(VARs, CNAME, XNAME, HEAD0, Bselect, CH, OC_VAR) ),
 	% ---------------------------------------------------------------------
 	HEAD0 =.. [_|HA],
 	HEAD =.. [ISCO_NAME | HA],
@@ -430,8 +445,11 @@ isco_prolog_code_update(CNAME, NET, NFs, Fs) :-
 %% B2   = (construct WHERE part, will build Q_W, args in QA_W, uses H_W)
 %% B3   = (finalize query and do the thing)
 	% ---------------------------------------------------------------------
-	isco_prolog_class_head(CNAME, NFs, Fs, HEAD0, VARs, OC_VAR),
-	isco_prolog_class_body(VARs, XNAME, HEAD0, Bselect, CH, OC_VAR),
+	isco_locate_generator(CNAME, GEN),
+%%DBG	format('%% ~w\n', [isco_locate_generator(CNAME, GEN)]),
+	GEN :> (
+	  isco_prolog_class_head(CNAME, NFs, Fs, HEAD0, VARs, OC_VAR),
+	  isco_prolog_class_body(VARs, CNAME, XNAME, HEAD0, Bselect, CH, OC_VAR) ),
 	% ---------------------------------------------------------------------
 	HEAD0 =.. [_|HAx],
 	HAx = [OID, IOF | _],			% pin down oid and iOf
@@ -439,21 +457,20 @@ isco_prolog_code_update(CNAME, NET, NFs, Fs) :-
 	% ---------------------------------------------------------------------
 	NFsm2 is NFs-2,
 	append(HAx, _, HA),
-	append(HA_WM, [HA_M], HAx),
+	append(_, [HA_M], HAx),
 	append(HA_WMS, [HA_G], HA),		% HA_G: head arg for GOAL
 	length(HA_S, NFsm2),			% HA_W: head args for WHERE...
-	append(HA_W, [HA_M|HA_S], HA_WMS),	% ...are at the end of HA.
+	append(_, [HA_M|HA_S], HA_WMS),		% ...are at the end of HA.
 	BODY = ((Bselect,
 		 format_to_codes(Q0, 'update ~w set', [IOF]),
 		 B1)),
 	H_S =.. [CNAME, _, _ | HA_S],		% head for SET (fake OID, IOF).
-	B2 = ((call(HA_G) ->
-	       isco_update_set(NFsm2, Fs, H_S, B1, B2, Q0, Q1),
-	       format_to_codes(QUERY, '~s where oid=~w', [Q1, OID]),
-	       ( g_read(isco_debug_sql, 1) ->
-		   format('sql(~w): ~s~n', [CH, QUERY]) ; true ),
-	       isco_be_exec(CH, QUERY, _SH)
-	      ;	  fail )),
+	B1 = ( call(HA_G) -> B2 ; fail ),
+	B3 = ( format_to_codes(QUERY, '~s where oid=~w', [Q1, OID]),
+		 ( g_read(isco_debug_sql, 1) ->
+		     format('sql(~w): ~s~n', [CH, QUERY]) ; true ),
+		 isco_be_exec(CH, QUERY, _SH) ),
+	isco_update_set(NFsm2, Fs, H_S, B2, B3, Q0, Q1),
 	nl,
 	portray_clause((HEAD2 :- BODY)),
 	nl.
@@ -499,25 +516,13 @@ isco_prolog_class_argnames([f(_,NAME,_,_)|FL], Lin, Lout) :-
 
 % -- Clauses to model inheritance (subtypes) ----------------------------------
 
-isco_prolog_class_inheritance(_CNAME, _NET, XDEF) :-
-	isco_auto_inheritance(XDEF, _), !.
-isco_prolog_class_inheritance(CNAME, NET, _XDEF) :-
-	isco_prolog_class_inheritance(CNAME, NET).
-
-
-% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-isco_auto_inheritance(isco, '*') :- !.	% be pessimistic, it does no harm.
-isco_auto_inheritance(odbc(_, postgres(V)), '') :- nonvar(V), V >= 7, !.
-isco_auto_inheritance(odbc(_, postgres(_)), '*') :- !.
-isco_auto_inheritance(odbc(_, postgres), '*') :- !.
-isco_auto_inheritance(PG, '*') :- nonvar(PG), PG=..[postgres|_], !.
-
-
-% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+isco_prolog_class_inheritance(CNAME, _NET) :-
+	isco_locate_generator(CNAME, GEN),
+	GEN :> isco_auto_inheritance,		% do we get it for free?
+	!.
 
 isco_prolog_class_inheritance(CNAME, NET) :-
-	lookup(NET, subs, subs=SUBCLASSES),
+	lookup(NET, subs, subs=SUBCLASSES),	% any subclasses?
 	lookup(NET, atrib, ATTRs),
 	\+ ol_memberchk(final, ATTRs),
 	!,
@@ -611,6 +616,9 @@ isco_prolog_sequence(NAME, ATTRs) :-
 % -----------------------------------------------------------------------------
 
 % $Log$
+% Revision 1.12  2003/03/16 09:20:26  spa
+% Large change: emit code for "select part" in a unit dependant on the back-end.
+%
 % Revision 1.11  2003/03/12 19:10:40  spa
 % - Simplified unit name.
 % - Better SQL code display when debugging (indicate connection)
