@@ -30,9 +30,16 @@ exec(Q, R) :- odbc_alloc_stmt(C, R), odbc_exec_direct(R, Q).
 fetch(R) :- odbc_fetch(R).
 get_data(R, X, T, V) :- odbc_get_data(R, X, T, V).
 
+ntuples(R, N) :- odbc_row_count(R, N).
+oid(_, 0) :- format('[warning: OID implicitly used with ODBC!]\n', []).
+
+
 % $Log$
-% Revision 1.1  2003/01/06 14:27:21  spa
-% Initial revision
+% Revision 1.2  2003/03/12 19:02:13  spa
+% Add ntuples/2 and fake oid/2.
+%
+% Revision 1.1.1.1  2003/01/06 14:27:21  spa
+% Imported into CVS
 %
 
 % Local Variables:
