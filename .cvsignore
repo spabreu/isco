@@ -8,3 +8,4 @@ auto*
 Makefile
 build
 configure
+stamp-*
