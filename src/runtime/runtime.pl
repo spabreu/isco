@@ -232,7 +232,7 @@ isco_odbc_format(TYPE, PL_REP, EXT_REP) :- % assume postgres by default
 
 
 isco_odbc_format(date, _, dt(Y,M,D,HH,MM,SS), DT) :- !,
-	format_to_codes(DT, "'~w-~w-~w ~w:~w:~w'::datetime", [Y,M,D,HH,MM,SS]).
+	format_to_codes(DT, "'~w-~w-~w ~w:~w:~w'::timestamp", [Y,M,D,HH,MM,SS]).
 
 isco_odbc_format(date, _, dt(Y,M,D), DT) :- !,
 	format_to_codes(DT, "'~w-~w-~w'::date", [Y,M,D]).
@@ -355,20 +355,20 @@ isco_where_var(_, V, N, T, WP, 'and', WC, WCo) :-
 	fd_var(V), T=int,			% FD only for int type...
 	!,
 	isco_odbc_fd_format(V, N, VF),
-	format_to_codes(WCo, '~s ~w o.~s', [WC, WP, VF]).
+	format_to_codes(WCo, '~s ~w o."~s"', [WC, WP, VF]).
 isco_where_var(_, V, N, term, WP, 'and', WC, WCo) :- % special for terms...
 	nonvar(V), !,
 	copy_term(V, VC),
 	isco_percent_variables(VC),
 	format_to_codes(VS, '~k', [VC]),
 	isco_odbc_text_format_no_percent(VS, VF), % mung quotes...
-	format_to_codes(WCo, '~s ~w o.~w like ''~s''', [WC, WP, N, VF]).
+	format_to_codes(WCo, '~s ~w o."~w" like \'~s\'', [WC, WP, N, VF]).
 isco_where_var(C, V, N, T, WP, 'and', WC, WCo) :-
 	isco_odbc_format(T, C, V, VF),
 	(N = instanceOf ->
 	    format_to_codes(WCo, '~s ~w c.relname=~s', [WC, WP, VF])
 	;
-	    format_to_codes(WCo, '~s ~w o.~w=~s', [WC, WP, N, VF]) ).
+	    format_to_codes(WCo, '~s ~w o."~w"=~s', [WC, WP, N, VF]) ).
 
 % -- SQL ORDER BY generation for individual variables -------------------------
 %
@@ -395,7 +395,7 @@ isco_order_clause([N=O|Os], OP, OPo, OC, OCo) :-
 
 isco_order_var(none,  _, OP, OP,  OC, OC) :- !.
 isco_order_var(ORDER, N, OP, ",", OC, OCo) :-
-	format_to_codes(OCo, '~s~s o.~w ~w', [OC, OP, N, ORDER]).
+	format_to_codes(OCo, '~s~s o."~w" ~w', [OC, OP, N, ORDER]).
 
 % -- Transmit default values --------------------------------------------------
 
@@ -470,7 +470,7 @@ isco_var_list_to_select(VARLIST, SELECT) :-
 
 isco_var_list_to_select([], _, SEL, SEL).
 isco_var_list_to_select([f(FNAME,_,_)|Fs], SPF, SELECT, SELECTo) :-
-	format_to_codes(SELECTi, '~s~so.~w', [SELECT, SPF, FNAME]),
+	format_to_codes(SELECTi, '~s~so."~w"', [SELECT, SPF, FNAME]),
 	isco_var_list_to_select(Fs, ", ", SELECTi, SELECTo).
 
 
@@ -734,6 +734,10 @@ isco_tsort_level(M, PX, N, X) :-
 % -----------------------------------------------------------------------------
 
 % $Log$
+% Revision 1.15  2003/04/09 12:06:54  spa
+% "Quote" field names in inserts, as they may be reserved words.
+% Cast date+time to "timestamp", not "datetime".
+%
 % Revision 1.14  2003/03/22 11:47:55  spa
 % *** empty log message ***
 %
