@@ -1,0 +1,34 @@
+#                                               -*- Autoconf -*-
+# Process this file with autoconf to produce a configure script.
+
+AC_PREREQ(2.57)
+AC_INIT(isco, 2.0, bug-isco@di.uevora.pt)
+AC_REVISION($Revision$)dnl
+
+# -----------------------------------------------------------------------------
+
+AC_PROG_AWK
+AC_PROG_INSTALL
+AC_PROG_MAKE_SET
+
+AC_PATH_PROG(GPLC, gplc-cx)
+AC_PATH_PROG(GPROLOG, gprolog-cx)
+AC_PATH_PROG(JAVA, java)
+AC_PATH_PROG(JAVAC, javac)
+AC_PATH_PROG(CUP, cup)
+AC_PATH_PROG(JLEX, jlex)
+
+AC_CHECK_LIB([odbc], [SQLAllocConnect])
+AC_CHECK_LIB([pq], [PQconnectdb])
+
+AC_CONFIG_FILES([Makefile
+                 src/Makefile
+		 util/schema-parser/Makefile
+		 util/scripts/Makefile
+		 util/scripts/isco])
+
+AC_SUBST(prefix)
+
+# -----------------------------------------------------------------------------
+
+AC_OUTPUT

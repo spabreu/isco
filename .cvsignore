@@ -6,3 +6,4 @@ isco-shell
 config.*
 auto*
 Makefile
+build
