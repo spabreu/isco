@@ -1,3 +1,58 @@
+isco (2.3-4) unstable; urgency=low
+
+  * back-end/sql-build.pl: transmit "comma" to various predicates, to
+    avoid creating things like "create table foo (,..." (closes: #38).
+  * back-end/prolog.pl and several others: put quotes around relation name
+    in SQL queries (closes: #43).
+  * several places: fix constraints when emitting SQL schema (closes: #22)
+
+ -- Salvador Abreu <spa@debian.org>  Sat, 24 May 2003 15:43:37 +0100
+
+isco (2.3-3) unstable; urgency=low
+
+  * back-end/sql-schema.pl and back-end/sql-build.pl: handle domain
+    constraints specified differently in subclasses, add an SQL constraint
+    for the inherited fields with a different constraint (closes: #22).
+    [WORK IN PROGRESS]
+  * back-end/prolog.pl: add fake extra arg to heads of computed classes in
+    select and delete clauses.
+
+ -- Salvador Abreu <spa@debian.org>  Wed, 16 Apr 2003 09:27:28 +0100
+
+isco (2.3-2) unstable; urgency=low
+
+  * Changes to runtime/runtime.pl (closes: #30)
+  * - :\ goals are now treated as minimally altered select goals;
+  * - properly expand positional-parameter goals;
+  * - recognize contextual calls;
+  * - isco_term_expansion/2 split, new ite/2 predicate;
+  * - isco_order_by_item/3: fail on unbound 1st arg.
+
+ -- Salvador Abreu <spa@debian.org>  Tue, 15 Apr 2003 14:34:00 +0100
+
+isco (2.3-1) unstable; urgency=low
+
+  * The "contextified code generation" release...
+  * back-end/prolog.pl: invoke subclass goals even with auto_inheritance
+    for all subclasses which do not provide auto_inheritance themselves.
+  * back-end/inherit.pl: new file with a unit which provides inheritance
+    clauses.
+  * Makefile.in: produce iscoc-shell as well.
+  * apt.pl: added a few meta-predicates, including the context goals...
+  * cmdline.pl: open an 'err' stream on FD 2.
+  * cmdline.pl, apt.pl: redirect errors to err stream.
+  * debian/rules: install changelog.
+  * debian/rules: stamp-config depends on all Makefile.ins...
+  * runtime/runtime.pl: properly quote constrained variables (closes: #29).
+
+ -- Salvador Abreu <spa@debian.org>  Tue, 15 Apr 2003 01:36:33 +0100
+
+isco (2.2-10) unstable; urgency=low
+
+  * apt.pl, parser.pl, back-end/prolog.pl: deal with rule :+ and rule :\.
+
+ -- Salvador Abreu <spa@debian.org>  Mon, 14 Apr 2003 10:16:48 +0100
+
 isco (2.2-9) unstable; urgency=low
 
   * back-end/prolog.pl: only emit glue predicate once!

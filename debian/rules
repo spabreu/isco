@@ -5,7 +5,7 @@ DH_COMPAT=3
 package=isco
 
 configure: stamp-configure
-stamp-configure:
+stamp-configure: Makefile.in src/Makefile.in
 	$(checkdir)
 	autoconf
 	./configure --prefix=/usr
@@ -42,7 +42,7 @@ stamp-binary-arch: checkroot build
 	make -C util/schema-parser install PREFIX=../../debian/tmp/usr
 	make -C util/scripts install PREFIX=../../debian/tmp/usr
 	dh_installdocs COPYRIGHT RELEASE TODO
-	#dh_installchangelogs changelog
+	dh_installchangelogs debian/changelog
 	install -m 644 debian/dhelp debian/tmp/usr/share/doc/$(package)/.dhelp
 	install -m 644 debian/dwww-index \
 		debian/tmp/usr/share/doc/$(package)/.dwww-index
