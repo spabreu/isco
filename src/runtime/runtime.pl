@@ -122,11 +122,17 @@ isco_arg_list(ARGS, GOAL, RELNAME) :-
 isco_arg_list(ARGS, GOAL, RELNAME) :-
 	isco_class(RELNAME, NARGS),
 	isco_positional_arg_list(POS, NARGS, ARGS, GOAL),
+	!,
 	( fd_domain(POS, [1, 3]) -> true
 	;   NSEEN is NARGS-POS+1,
 	    NARGSm2 is NARGS-2,
 	    throw(invalid(positional_arg_list(length(NSEEN)),
 			  relation(RELNAME,length(NARGS,NARGSm2)))) ).
+
+isco_arg_list(ARGS, _, RELNAME) :-
+	format("isco: warning: illegal arg list ~w for class ~w.~n",
+		[ARGS, RELNAME]).
+
 
 
 isco_arg_list(AAs, GOAL, RELNAME, BASE, MASK, MASKo) :-
@@ -139,10 +145,9 @@ isco_arg_list(A, GOAL, RELNAME, BASE, MASK, MASKo) :-
 	isco_arg(A, GOAL, RELNAME, BASE, MASK, MASKo).
 
 
-isco_arg(VARARG, _GOAL, RELNAME, _BASE, MASK, MASK) :-
+isco_arg(VARARG, _GOAL, _RELNAME, _BASE, MASK, MASK) :-
 	var(VARARG), !,
-	format("isco: warning: variable field provided to class ~w.~n",
-		[RELNAME]).
+	fail.
 isco_arg(ARG=VALUE, GOAL, RELNAME, BASE, MASKi, MASKo) :-
 	isco_field(RELNAME, ARG, POS, _TYPE),
 	POSITION is POS + BASE,
@@ -755,6 +760,10 @@ isco_tsort_level(M, PX, N, X) :-
 % -----------------------------------------------------------------------------
 
 % $Log$
+% Revision 1.17  2003/06/17 15:41:15  spa
+% don't barf on variables occurring in arguments lists when using positional
+% argument syntax.
+%
 % Revision 1.16  2003/04/15 15:07:03  spa
 % - fix SQL construction of constrained parameters (quotes were wrong)
 % - isco_term_expansion rebuilt.
