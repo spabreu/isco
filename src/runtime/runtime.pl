@@ -368,7 +368,8 @@ isco_be_get_arg(0, _, P, CH, SH, OTn, CONV, V, T, _) :-
 isco_be_get_arg(_, N, _, CH, SH, OTn, CONV, V, T, VL) :-
 	memberchk(f(N,PX,_), VL),
 	!,
-	isco_be_get_data(CH, SH, PX, OTn, Vx),
+	PX1 is PX+1,		% FIXME: skip OID (extra first arg)
+	isco_be_get_data(CH, SH, PX1, OTn, Vx),
 	( CONV=yes -> isco_odbc_conv(T, Vx, V) ; V=Vx ).
 isco_be_get_arg(_, _, _, _, _, _, _, _, _, _).
 
@@ -573,6 +574,9 @@ isco_tsort_level(M, PX, N, X) :-
 % -----------------------------------------------------------------------------
 
 % $Log$
+% Revision 1.6  2003/02/26 19:21:05  spa
+% isco_be_get_arg/10: offset by 1 to account for OID...
+%
 % Revision 1.5  2003/01/18 15:48:04  spa
 % isco_update_set_var/7 helper predicate (it's now /8, really, but there are
 % calls to the same predicate w/o the connection: provide a default value...)
