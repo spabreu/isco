@@ -145,7 +145,7 @@ isco_odbc_type(int,      integer).
 isco_odbc_type(text,     varchar).
 isco_odbc_type(float,    float).
 isco_odbc_type(double,   double).
-isco_odbc_type(bool,     integer).
+isco_odbc_type(bool,     bool).
 isco_odbc_type(date,     timestamp).
 isco_odbc_type(dt,       timestamp).
 isco_odbc_type(datetime, timestamp).
@@ -164,14 +164,23 @@ isco_odbc_generated_type(term,      text).
 
 % -- ISCO/ODBC type conversions -----------------------------------------------
 %
-% isco_odbc_conv(TYPE, PROLOG_VALUE, EXTERNAL_VALUE)
+% isco_odbc_conv(+TYPE, +EXTERNAL_VALUE, -PROLOG_VALUE)
 %
 
 isco_odbc_conv(bool).
 isco_odbc_conv(term).
 
-isco_odbc_conv(bool, 1, TRUE)  :- memberchk(TRUE,  [true,  t]).
-isco_odbc_conv(bool, 0, FALSE) :- memberchk(FALSE, [false, f]).
+%%DBG isco_odbc_conv(T, XV, PV) :- format("[~w]~n", [isco_odbc_conv(T, XV, PV)]), fail.
+
+isco_odbc_conv(bool, true, true) :- !.
+isco_odbc_conv(bool, false, false) :- !.
+isco_odbc_conv(bool, 1, true) :- !.
+isco_odbc_conv(bool, 0, false) :- !.
+isco_odbc_conv(bool, "t", true) :- !.
+isco_odbc_conv(bool, "f", false) :- !.
+isco_odbc_conv(bool, "1", true) :- !.
+isco_odbc_conv(bool, "0", false) :- !.
+
 
 isco_odbc_conv(term, [], []) :- !.
 isco_odbc_conv(term, STRING, TERM) :-
@@ -211,8 +220,10 @@ isco_odbc_format(term, _, S, SS) :- !,
 isco_odbc_format(int, _, nextval(SEQ), NVS) :- !,
 	format_to_codes(NVS, "nextval ('~w')", [SEQ]).
 
-isco_odbc_format(bool, pg(_), BV, BV) :- !.
-isco_odbc_format(bool, _, PL_BV, X_BV) :- !, isco_odbc_conv(bool, X_BV, PL_BV).
+isco_odbc_format(bool, pg(_), T, "true") :- memberchk(T, [t, true, 1]), !.
+isco_odbc_format(bool, pg(_), F, "false") :- memberchk(F, [f, false, 0]), !.
+isco_odbc_format(bool, _, T, "1") :- memberchk(T, [t, true, 1]), !.
+isco_odbc_format(bool, _, F, "0") :- memberchk(F, [f, false, 0]), !.
 
 isco_odbc_format(_TYPE, _, S, SS) :-
 	format_to_codes(SS, "~w", [S]).
@@ -634,6 +645,9 @@ isco_tsort_level(M, PX, N, X) :-
 % -----------------------------------------------------------------------------
 
 % $Log$
+% Revision 1.9  2003/03/07 23:01:21  spa
+% boolean conversions...
+%
 % Revision 1.8  2003/03/07 09:59:58  spa
 % term type.
 % delete done as select(oid)+delete(oid).
