@@ -26,12 +26,12 @@
 
 :- unit(isco_prolog(ST)).
 
-emit :-
-	DASH="=",
+emit :- DASH="=",
 	format_to_atom(C, "%% ~2c ISCO clause definitions. ", [DASH]),
 	atom_length(C, CLENGTH),
 	format("~n~w~*c~n~n", [C, 79-CLENGTH, DASH]),
 	isco_prolog_code(ST).
+
 
 isco_prolog_code(EST) :- var(EST), !.
 isco_prolog_code([external(NAME)=METHOD|Ss]) :-
@@ -99,8 +99,6 @@ isco_prolog_specials([clause(HEAD, _, BODY)|Ss], FA) :-
 	portray_clause((HEAD :- BODY)), nl,
 	isco_prolog_specials(Ss, NF/NA).
 isco_prolog_specials([directive(_, _BODY)|Ss], _) :-
-%	nl,					% now handled elsewhere
-%	portray_clause((:- BODY)), nl,
 	isco_prolog_specials(Ss, separate).
 
 
@@ -577,6 +575,9 @@ isco_prolog_sequence(NAME, ATTRs) :-
 % -----------------------------------------------------------------------------
 
 % $Log$
+% Revision 1.5  2003/02/28 22:24:17  spa
+% make clean limpa mesmo :)
+%
 % Revision 1.4  2003/02/14 14:22:45  spa
 % Offset in column index due to OID being included in query.
 %
