@@ -1,3 +1,29 @@
+isco (2.1-7) unstable; urgency=low
+
+  * Reworked update code to use OIDs: it's now a single select followed by
+    a variable number of updates which only identify the tuple based on
+    class and OID. (closes: #7)
+  * update now has an extra parameter: a goal to satisfy on individual
+    tuples before the change actually takes place.
+
+ -- Salvador Abreu <spa@debian.org>  Sun,  9 Mar 2003 02:22:17 +0000
+
+isco (2.1-6) unstable; urgency=low
+
+  * runtime/runtime.pl: isco_odbc_format/3 and isco_odbc_conv/3: properly
+    deal with "bool" data type.
+  * explicitly depends on new gprolog-{postgresql,odbc}-cx package
+    versions.
+
+ -- Salvador Abreu <spa@debian.org>  Fri,  7 Mar 2003 22:31:26 +0000
+
+isco (2.1-5) unstable; urgency=low
+
+  * back-end/prolog.pl: sequence queries must be strings, not
+    atoms. (closes: #3)
+
+ -- Salvador Abreu <spa@debian.org>  Fri,  7 Mar 2003 16:05:14 +0000
+
 isco (2.1-4) unstable; urgency=low
 
   * back-end/sql.pl: don't generate oid and instanceOf fields.
