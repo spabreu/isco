@@ -126,8 +126,11 @@ install: $(COMPILER) $(PROGSHELL) $(OBJECTS) $(LIB_OBJECTS)
 	$(INSTALL) -m 444 $(SHELL_OBJECTS) $(LIBDIR)
 
 clean:
-	rm -f *~ \#* *.o $(COMPILER) $(PROGSHELL) revision.pl
-	for D in $(SUBDIRS); do make -C $$D clean; done
+	rm -f $(COMPILER) $(PROGSHELL) revision.pl
+	for D in . $(SUBDIRS); do		\
+	  ( cd $$D;				\
+	    rm -f *~ \#* *.o  )			\
+	done
 
 $(COMPILER): $(ISCOC_OBJECTS) $(DB)
 	$(GPLC) -o $@ \
@@ -180,6 +183,9 @@ revision.pl: revision.pl.in ../debian/changelog
 
 
 # $Log$
+# Revision 1.8  2003/03/05 01:22:22  spa
+# *** empty log message ***
+#
 # Revision 1.7  2003/02/28 22:24:17  spa
 # make clean limpa mesmo :)
 #
