@@ -40,6 +40,7 @@ emit :-
 	isco_schema(class),
 	isco_schema(sequence),
 	isco_schema(superclass),
+	isco_schema(gluefields),
 	isco_schema(fields),
 	isco_schema(field),
 	isco_schema(key),
@@ -123,15 +124,18 @@ isco_schema_entry(classtype, NAME, NET, ok) :-
 	lookup(NET, atrib, atrib=ATTRs),	% external class?
 	ol_memberchk(external(DB, REL), ATTRs),
 	!,
+	assertz(isco_classtype(NAME, external(DB, REL))),
 	portray_clause(isco_classtype(NAME, external(DB, REL))), nl.
 
 isco_schema_entry(classtype, NAME, NET, ok) :-
 	lookup(NET, rules, rules=RULES),	% computed class?
 	nonvar(RULES),
 	!,
+	assertz(isco_classtype(NAME, computed)),
 	portray_clause(isco_classtype(NAME, computed)), nl.
 
 isco_schema_entry(classtype, NAME, _NET, ok) :- !,
+	assertz(isco_classtype(NAME, regular)),
 	portray_clause(isco_classtype(NAME, regular)), nl.
 
 isco_schema_entry(class, CNAME, NET, ok) :-
@@ -152,8 +156,17 @@ isco_schema_entry(superclass, CNAME, NET, DONE) :-
 isco_schema_entry(fields, CNAME, NET, ok) :-
 	lookup(NET, fields, fields=_Fs), !,
 	atom_concat('isco_field_', CNAME, CFNAME),
+	HEAD = isco_field(CNAME, N,P,NF,F, T),
+	BODY =.. [ CFNAME, N,P,NF,F, T ],
+	assertz((HEAD :- BODY)),
+	portray_clause((HEAD :- BODY)), nl.
+
+isco_schema_entry(gluefields, CNAME, NET, ok) :- % glue for older version
+	lookup(NET, fields, fields=_Fs), !,
+	atom_concat('isco_field_', CNAME, CFNAME),
 	HEAD = isco_field(CNAME, N,P,T),
-	BODY =.. [ CFNAME, N,P,T ],
+	BODY =.. [ CFNAME, N,P,_,_, T ],
+	assertz((HEAD :- BODY)),
 	portray_clause((HEAD :- BODY)), nl.
 
 isco_schema_entry(field, CNAME, NET, ok) :-
@@ -177,19 +190,34 @@ isco_schema_entry(attr(ATTRIBUTE), CNAME, NET, DONE) :-
 
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-isco_schema_field([],  _).
-isco_schema_field([f(POS,NAME,TYPE,ATTRs)|Fs], CFNAME) :-
-	isco_schema_field(Fs, CFNAME),		% reverse order
-	( lookup(ATTRs, dupe, dupe=yes) ->
-	    true				% duplicate field: ignore
-	;   HEAD =.. [CFNAME, NAME, POS, TYPE],
-	    portray_clause(HEAD), nl ).
+% isco_schema_field/2: isco_field_CLASS(NAME, POS, NFAKES, FAKE, TYPE)
+% where:
+%    CLASS and NAME: obvious (atoms)
+%    POS: position (from the ISCO side...)
+%    NFAKES: number of fake args occurring (strictly) before this arg
+%    FAKE: either 'fake' or 'regular'
+
+isco_schema_field(Fs, CFNAME) :- isco_schema_field(Fs, CFNAME, 0, _).
+
+isco_schema_field([],  _, X, X).
+isco_schema_field([f(POS,NAME,TYPE,ATTRs)|Fs], CFNAME, Fi, Fo) :-
+	isco_schema_field(Fs, CFNAME, Fi, Fx),	% reverse order
+	( ol_memberchk(dupe, ATTRs) ->		% duplicate field: ignore
+	    Fo=Fx				% (no output at all)
+	;   ( ol_memberchk(fake(_), ATTRs) ->
+		Fo is Fx+1, FAKE=fake		% fake field: no position
+	    ;	Fo=Fx, FAKE=regular ),		% normal: increment position
+	    HEAD =.. [CFNAME, NAME, POS, Fx, FAKE, TYPE],
+	    assertz(HEAD),
+	    portray_clause(HEAD),
+	    format('\t%% ~w\n', [ATTRs]) ).
 
 
 isco_schema_attr([], _, _, _).
 isco_schema_attr([F|Fs], SET, CNAME, DONE) :-
 	isco_schema_attr(Fs, SET, CNAME, DONE),	% reverse order
 	( isco_schema_pattern(SET, CNAME, F, CLAUSE) ->
+	    assertz(CLAUSE),
 	    portray_clause(CLAUSE), nl, DONE=ok
 	; true ).
 
@@ -201,12 +229,12 @@ isco_schema_pattern(SET, CNAME, F, CLAUSE) :-
 
 isco_schema_pattern(domain, CNAME, f(_,FNAME,_,ATTRs),
 	isco_field_domain(CNAME, FNAME, XCNAME, XFNAME), OK) :-
-	( lookup(ATTRs, dupe, dupe=yes) -> fail	% ignore dups
+	( ol_memberchk(dupe, ATTRs) -> fail	% ignore dups
 	; ol_memberchk(internal(XCNAME,XFNAME), ATTRs) -> OK=ok ; OK=no ).
 
 isco_schema_pattern(defaults, CNAME, f(_,FNAME,_,ATTRs),
 	isco_field_default(CNAME, FNAME, VALUE), OK) :-
-	( lookup(ATTRs, dupedIn, dupedIn=DUPEDIN) ->
+	( ol_memberchk(dupedIn(DUPEDIN), ATTRs) ->
 	    ( ol_memberchk(CNAME, DUPEDIN) -> fail
 	    ;	ol_memberchk(default(VALUE), ATTRs) -> OK=ok ; OK=no )
 	;   ( ol_memberchk(default(VALUE), ATTRs) -> OK=ok ; OK=no ) ).
@@ -231,6 +259,10 @@ isco_schema_pattern(index, CNAME, f(_,FNAME,_,ATTRs),
 % -----------------------------------------------------------------------------
 
 % $Log$
+% Revision 1.5  2003/03/16 09:21:18  spa
+% New format for isco_field: add 2 args (number of fakes before, indicate
+% whether present arg is a fake).
+%
 % Revision 1.4  2003/03/12 19:05:55  spa
 % Simplified unit name...
 %
@@ -324,4 +356,5 @@ isco_schema_pattern(index, CNAME, f(_,FNAME,_,ATTRs),
 % mode: prolog
 % mode: font-lock
 % mode: outline-minor
+% comment-column: 48
 % End:
