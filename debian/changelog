@@ -1,3 +1,10 @@
+isco (2.1-8) unstable; urgency=low
+
+  * update: PRED(ARGS) := NEWARGS syntax was buggy: ARGS was being
+    silently ignored.  (closes: #13)
+
+ -- Salvador Abreu <spa@debian.org>  Mon, 10 Mar 2003 22:35:11 +0000
+
 isco (2.1-7) unstable; urgency=low
 
   * Reworked update code to use OIDs: it's now a single select followed by
