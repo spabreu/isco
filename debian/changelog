@@ -1,3 +1,9 @@
+isco (2.2-6) unstable; urgency=low
+
+  * rebuild with new gprolog-cx
+
+ -- Salvador Abreu <spa@debian.org>  Mon,  7 Apr 2003 01:18:47 +0100
+
 isco (2.2-5) unstable; urgency=low
 
   * moved src/back-end/prolog-*.pl into src/back-end/code/*.pl

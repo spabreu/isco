@@ -3,16 +3,16 @@ Section: devel
 Priority: optional
 Maintainer: Salvador Abreu <spa@di.uevora.pt>
 Build-Depends: gprolog-cx, debhelper, imagemagick, php4-dev, unixodbc-dev
-Standards-Version: 3.1.1
+Standards-Version: 3.5.9
 
 Package: isco
 Architecture: i386
 Depends: ${shlibs:Depends},
  php4,
- gprolog-cx (=1.2.13-3),
- gprolog-php-cx,
- gprolog-postgresql-cx (>=1.0-4),
- gprolog-odbc-cx (>=1.0-6),
+ gprolog-cx (=1.2.13-4),
+ gprolog-php-cx (>=1.0-6),
+ gprolog-postgresql-cx (>=1.0-5),
+ gprolog-odbc-cx (>=1.0-7),
  gprolog-pillow-cx,
  java-compiler, java-virtual-machine, cup (>=0.10k), jlex (>=1.2.5)
 Conflicts: 

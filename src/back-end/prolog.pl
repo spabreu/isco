@@ -193,9 +193,14 @@ isco_prolog_external_class(CNAME, NFs, Fs, _XDEF, XID, XNAME) :-
 	BODYx = HEAD0,
 	HEAD0 =.. [HPx, _, _ | HAx],
 	HEADx =.. [HPx | HAx],
+	atom_concat(CNAME, '_cache', CACHENAME),
+	atom_concat(cached_, CNAME, IS_CACHED),
+	CACHED_GOAL =.. [CACHENAME, CH | HA],
+	CACHED_BODY = (g_read(IS_CACHED, 1), !, CACHED_GOAL),
 	portray_clause((HEADx :- BODYx)), nl,
 	portray_clause((HEAD0 :- BODY0)), nl,
 	portray_clause((HEAD :- BODY1)), nl,
+	portray_clause((HEAD1 :- CACHED_BODY)), nl,
 	portray_clause((HEAD1 :- BODY)), nl.
 
 
@@ -616,6 +621,9 @@ isco_prolog_sequence(NAME, ATTRs) :-
 % -----------------------------------------------------------------------------
 
 % $Log$
+% Revision 1.13  2003/04/08 13:45:58  spa
+% Start working on cached classes.
+%
 % Revision 1.12  2003/03/16 09:20:26  spa
 % Large change: emit code for "select part" in a unit dependant on the back-end.
 %

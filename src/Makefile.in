@@ -28,6 +28,8 @@ GPLC = @GPLC@
 PROLOG = gprolog-cx
 INSTALL = @INSTALL@
 
+GPLCFLAGS = -C -g
+
 PROG = isco
 
 LOADER = $(PROG)
@@ -54,7 +56,7 @@ PLFILES = \
 	back-end/code-gen-directives.pl \
 	back-end/prolog.pl \
 	$(wildcard back-end/code/*.pl) \
-	back-end/sql.pl \
+	back-end/sql-build.pl \
 	back-end/sql-schema.pl \
 	symtab.pl \
 	top-level.pl \
@@ -79,7 +81,7 @@ ISCOC_OBJECTS = \
 	back-end/code-gen-directives.o \
 	back-end/prolog.o \
 	$(subst .pl,.o,$(wildcard back-end/code/*.pl)) \
-	back-end/sql.o \
+	back-end/sql-build.o \
 	back-end/sql-schema.o \
 	isco_lib_dir.o
 
@@ -103,7 +105,7 @@ LIB_OBJECTS = \
 	runtime/backend-odbc.o \
 	back-end/prolog.o \
 	$(subst .pl,.o,$(wildcard back-end/code/*.pl)) \
-	back-end/sql.o \
+	back-end/sql-build.o \
 	back-end/sql-schema.o
 
 OBJECTS = \
@@ -130,19 +132,19 @@ install: $(COMPILER) $(PROGSHELL) $(OBJECTS) $(LIB_OBJECTS)
 
 clean:
 	rm -f $(COMPILER) $(PROGSHELL) revision.pl
-	for D in . $(SUBDIRS); do		\
-	  ( cd $$D;				\
-	    rm -f *~ \#* *.o  )			\
+	for D in . $(SUBDIRS); do					 \
+	  ( cd $$D;							 \
+	    find . -name \*~ -o -name \#* -o -name \*.o | xargs rm -f  ) \
 	done
 
 $(COMPILER): $(ISCOC_OBJECTS) $(DB)
-	$(GPLC) -o $@ \
+	$(GPLC) $(GPLCFLAGS) -o $@ \
 		$(ISCOC_OBJECTS) \
 		$(ISCOC_FLAGS) \
 		$(DB) $(LIBDB)
 
 $(PROGSHELL): $(SHELL_OBJECTS) $(DB)
-	$(GPLC) -o $@ \
+	$(GPLC) $(GPLCFLAGS) -o $@ \
 		$(SHELL_OBJECTS) \
 		$(SHELL_FLAGS) \
 		$(DB) $(LIBDB)
@@ -154,7 +156,7 @@ revision.pl: revision.pl.in ../debian/changelog
 	sed -e "s;@REVISION@;`head -1 ../debian/changelog | sed -e 's;.*(;;' -e 's;).*;;'`;" < $< > $@
 
 %.o:: %.pl
-	$(GPLC) --no-redef-error -c $<
+	$(GPLC) $(GPLCFLAGS) --no-redef-error -c $<
 
 %.pl:: % $(COMPILER) $(wildcard %/*.isco)
 	@make -s $(COMPILER)
@@ -186,6 +188,9 @@ revision.pl: revision.pl.in ../debian/changelog
 
 
 # $Log$
+# Revision 1.11  2003/04/08 13:45:58  spa
+# Start working on cached classes.
+#
 # Revision 1.10  2003/03/26 00:04:54  spa
 # moved back-end/prolog-*.pl into back-end/code/*.pl
 #
