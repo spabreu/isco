@@ -1,3 +1,9 @@
+isco (2.2-5) unstable; urgency=low
+
+  * moved src/back-end/prolog-*.pl into src/back-end/code/*.pl
+
+ -- Salvador Abreu <spa@debian.org>  Wed, 26 Mar 2003 00:07:15 +0000
+
 isco (2.2-4) unstable; urgency=low
 
   * (all of these changes affect runtime/runtime.pl)...
