@@ -328,9 +328,9 @@ isco_prolog_code_insert(CNAME, NET, NFs, Fs) :-
 	    BODY1 = (isco_connection(CH), HEAD1)
 	;   atom_concat('isco_', XID, ISCO_XID),
 	    BODY1 = (isco_connection(ISCO_XID, CH), HEAD1) ),
-	isco_prolog_class_argnames(Fs2, [], ANLIST),
-	XNAME_ARGS =.. [XNAME | ANLIST],
-	format_to_codes(Q0, 'insert into ~w values', [XNAME_ARGS]),
+	reverse(Fs2, RFs2),			% *CROCK*
+	isco_prolog_class_argnames(RFs2, [], ANSTRING, ''),
+	format_to_codes(Q0, 'insert into ~w(~s) values', [XNAME, ANSTRING]),
 	BODY = (QPFX = Q0, BODY2),
 	reverse(Fs, RFs),			% *CROCK*
 	arg(1,HEAD,OID),			% **OBNOXIOUS CROCK**
@@ -509,14 +509,15 @@ isco_update_set(N, [f(P,FN,T,_A)|Fs], H, PF, Gin, Gout, SCin, SCout) :-
 
 % -- Clauses to get the list of argument names from a class -------------------
 
-isco_prolog_class_argnames(EOL, L, L) :- var(EOL), !.
-isco_prolog_class_argnames([],  L, L) :- !.
-isco_prolog_class_argnames([f(_,NAME,_,_)|FL], Lin, Lout) :-
-	ol_memberchk(f(_,NAME,_,_), FL), !, % ignore dupes (override...)
-	isco_prolog_class_argnames(FL, Lin, Lout).
+isco_prolog_class_argnames(EOL, L, L, _PFX) :- var(EOL), !.
+isco_prolog_class_argnames([],  L, L, _PFX) :- !.
+isco_prolog_class_argnames([f(_,NAME,_,_)|FL], Lin, Lout, PFX) :-
+	ol_memberchk(f(_,NAME,_,_), FL), !, % ignore dupes (keep last...)
+	isco_prolog_class_argnames(FL, Lin, Lout, PFX).
 
-isco_prolog_class_argnames([f(_,NAME,_,_)|FL], Lin, Lout) :-
-	isco_prolog_class_argnames(FL, [NAME|Lin], Lout).
+isco_prolog_class_argnames([f(_,NAME,_,_)|FL], Lin, Lout, PFX) :-
+	format_to_codes(Lint, '~s~w"~w"', [Lin, PFX, NAME]),
+	isco_prolog_class_argnames(FL, Lint, Lout, ', ').
 
 
 % -- Clauses to model inheritance (subtypes) ----------------------------------
@@ -621,6 +622,9 @@ isco_prolog_sequence(NAME, ATTRs) :-
 % -----------------------------------------------------------------------------
 
 % $Log$
+% Revision 1.14  2003/04/09 12:05:50  spa
+% "Quote" field names in inserts, as they may be reserved words.
+%
 % Revision 1.13  2003/04/08 13:45:58  spa
 % Start working on cached classes.
 %
