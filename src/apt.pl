@@ -94,7 +94,7 @@ isco_apt_name(class(NAME, ATTRs, SUPERs, DEFs), ST) :-
 	insert(NET, fields=FIELDs),
 	insert(NET, rules=_RULEs),
 	isco_apt_field_defs(DEFs, NAME, NET, ST),
-	isco_apt_default_fields(SUPERs, FIELDs, NAME),
+	isco_apt_default_fields(SUPERs, FIELDs, NAME, ST),
 	isco_apt_name_defs(DEFs, NAME, NET, ST).
 
 isco_apt_name(clause(HEAD, BODY), ST) :-
@@ -133,12 +133,14 @@ isco_apt_name_defs([], _CNAME, _NET, _ST).
 
 % Don't do it if this has superclasses.
 
-isco_apt_default_fields(SUPERs, _, _) :- var(SUPERs), !.
-isco_apt_default_fields([_|_], _, _) :- !.	% it's a subclass: inherit
-isco_apt_default_fields(_, FST, _CNAME) :-	% not a subclass: extra fields.
-	insert(FST, f(2, instanceOf, text, [hidden=yes|_])),
-	insert(FST, f(1, oid, int, [hidden=yes|_])).
-
+isco_apt_default_fields(SUPERs, _, _, _) :- var(SUPERs), !.
+isco_apt_default_fields([_|_], _, _, _) :- !.	% it's a subclass: inherit
+isco_apt_default_fields(_, FST, CNAME, ST) :-	% not a subclass: extra fields.
+	prolog(ST) :> isco_locate_generator(CNAME, GEN),
+	insert(FST, f(2, instanceOf, text, [hidden|IOFX])),
+	insert(FST, f(1, oid, int, [hidden|OIDX])),
+	( GEN :> has(instanceOf) -> true ; IOFX=[fake(CNAME)|_] ),
+	( GEN :> has(oid) -> true ; OIDX=[fake(0)|_] ).
 
 % -- field DEF for field node -------------------------------------------------
 
@@ -420,7 +422,7 @@ isco_apt_zap_fields(_NAME, NET) :-
 	\+ DESC=[],				% it's got subclasses
 	lookup(NET, fields, fields=FLIST),
 	ol_memberchk(f(_,instanceOf,_,ALIST), FLIST),
-	member(skip=yes, ALIST), !.
+	member(skip, ALIST), !.
 isco_apt_zap_fields(_, _).
 
 
@@ -502,8 +504,8 @@ isco_field_numbers([F|Fs], N, KF, CNAME) :-
 	( memberchk(f(K,NAME,TYPE,ATTRs2), Fs) ->
 	    KFi=K,				% repeated field (default?)
 	    KF=N1,
-	    member(dupe=yes, ATTRs),		% FIXME: don't barf on dupes!
-	    member(dupedIn=DUPEDIN, ATTRs2),
+	    member(dupe, ATTRs),		% FIXME: don't barf on dupes!
+	    member(dupedIn(DUPEDIN), ATTRs2),
 	    insert(DUPEDIN, CNAME)		% remember WHO redefines it.
 	;
 	    KF is N1+1,				% genuine new field...
@@ -530,8 +532,8 @@ isco_literal_type(_, term).
 isco_default_type(text).
 
 
-isco_nondupe_fields(Fs, FF) :- isco_skip_fields(Fs, dupe=yes, FF).
-isco_skip_fields(Fs, FF)    :- isco_skip_fields(Fs, skip=yes, FF).
+isco_nondupe_fields(Fs, FF) :- isco_skip_fields(Fs, dupe, FF).
+isco_skip_fields(Fs, FF)    :- isco_skip_fields(Fs, skip, FF).
 
 
 isco_skip_fields(Fs, ATTR, FF) :-
@@ -546,7 +548,7 @@ isco_database_type(C, DBTYPE, ST) :-
 	lookup(ST, C, C=NET),
 	lookup(NET, atrib, atrib=As),
 	( ol_memberchk(external(EXT, _), As) ->
-	    lookup(ST, external(EXT), external(EXT)=DBTYPE)
+	    lookup(ST, external(EXT), _=DBTYPE)
 	; ol_memberchk(computed, As) -> DBTYPE=computed
 	; DBTYPE=isco ),
 	!.
