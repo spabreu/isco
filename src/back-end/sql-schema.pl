@@ -210,7 +210,8 @@ isco_schema_field([f(POS,NAME,TYPE,ATTRs)|Fs], CFNAME, Fi, Fo) :-
 	    HEAD =.. [CFNAME, NAME, POS, Fx, FAKE, TYPE],
 	    assertz(HEAD),
 	    portray_clause(HEAD),
-	    format('\t%% ~w\n', [ATTRs]) ).
+%%DBG	    format('\t%% ~w', [ATTRs]),
+	    nl ).
 
 
 isco_schema_attr([], _, _, _).
@@ -229,8 +230,12 @@ isco_schema_pattern(SET, CNAME, F, CLAUSE) :-
 
 isco_schema_pattern(domain, CNAME, f(_,FNAME,_,ATTRs),
 	isco_field_domain(CNAME, FNAME, XCNAME, XFNAME), OK) :-
-	( ol_memberchk(dupe, ATTRs) -> fail	% ignore dups
-	; ol_memberchk(internal(XCNAME,XFNAME), ATTRs) -> OK=ok ; OK=no ).
+%%DBG	format('%% ->isco_field_domain(~w,~w)=~w\n', [CNAME,FNAME,ATTRs]),
+	( ol_memberchk(dupedIn(DUPEDIN), ATTRs),
+	    ol_memberchk(CNAME, DUPEDIN) -> fail ; true ),
+	ol_memberchk(internal(XCNAME,XFNAME), ATTRs) -> OK=ok ; OK=no.
+%%	( ol_memberchk(dupe, ATTRs) -> fail	% ignore dups
+%%	; ol_memberchk(internal(XCNAME,XFNAME), ATTRs) -> OK=ok ; OK=no ).
 
 isco_schema_pattern(defaults, CNAME, f(_,FNAME,_,ATTRs),
 	isco_field_default(CNAME, FNAME, VALUE), OK) :-
@@ -259,6 +264,10 @@ isco_schema_pattern(index, CNAME, f(_,FNAME,_,ATTRs),
 % -----------------------------------------------------------------------------
 
 % $Log$
+% Revision 1.6  2003/04/16 08:47:26  spa
+% Re-issue referential integrity constraints (ie. isco_field_domain/4 rules)
+% when actually needed.
+%
 % Revision 1.5  2003/03/16 09:21:18  spa
 % New format for isco_field: add 2 args (number of fakes before, indicate
 % whether present arg is a fake).
