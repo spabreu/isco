@@ -177,14 +177,14 @@ isco_schema_entry(attr(ATTRIBUTE), CNAME, NET, DONE) :-
 
 isco_schema_field([],  _).
 isco_schema_field([f(POS,NAME,TYPE,_)|Fs], CFNAME) :-
-	isco_schema_field(Fs, CFNAME),
+	isco_schema_field(Fs, CFNAME), % reverse order
 	HEAD =.. [CFNAME, NAME, POS, TYPE],
 	portray_clause(HEAD), nl.
 
 
-isco_schema_attr([],  _, _, _, _).
+isco_schema_attr([], _, _, _).
 isco_schema_attr([F|Fs], SET, CNAME, DONE) :-
-	isco_schema_attr(Fs, SET, CNAME, DONE),
+	isco_schema_attr(Fs, SET, CNAME, DONE),	% reverse order
 	( isco_schema_pattern(SET, CNAME, F, CLAUSE) ->
 	    portray_clause(CLAUSE), nl, DONE=ok
 	; true ).
@@ -223,6 +223,9 @@ isco_schema_pattern(index, CNAME, f(_,FNAME,_,ATTRs),
 % -----------------------------------------------------------------------------
 
 % $Log$
+% Revision 1.2  2003/02/28 23:39:27  spa
+% isco_schema_attr/4: first clause had an argument too many!
+%
 % Revision 1.1  2003/01/06 15:15:01  spa
 % *** empty log message ***
 %
