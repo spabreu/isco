@@ -60,6 +60,10 @@
 % rules=RULE_LIST
 % prules=RULE_LIST
 %  Rules.  First form is raw from source; second is after de-iscofication.
+%
+% gunit=GEN_UNIT
+%  Code-generator unit (with any relevant parameters); used to extend the
+%  [prolog(ST)|_] context in order to produce code for all class accesses.
 
 :- include(ops).
 
@@ -86,13 +90,14 @@ isco_apt_name(external(NAME, METHOD), ST) :-
 	!.					% ...namespace collision.
 
 isco_apt_name(class(NAME, ATTRs, SUPERs, DEFs), ST) :-
-	insert(ST, NAME=NET),			% NET: Name Entry Symbol Table
+	insert(ST, NAME=[(class)|NET]),		% NET: Name Entry Symbol Table
 	!,
 	insert(NET, name=NAME),			% redundant but convenient...
 	insert(NET, super=SUPERs),
 	insert(NET, atrib=ATTRs),
 	insert(NET, fields=FIELDs),
 	insert(NET, rules=_RULEs),
+	insert(NET, gunit=GUNIT),
 	isco_apt_field_defs(DEFs, NAME, NET, ST),
 	isco_apt_default_fields(SUPERs, FIELDs, NAME, ST),
 	isco_apt_name_defs(DEFs, NAME, NET, ST).
@@ -195,9 +200,9 @@ isco_apt_name_def(data(_CLASS, FIELDs, VALUEs), _CNAME, NET, _ST) :-
 
 % -- DEF for rule node --------------------------------------------------------
 
-isco_apt_name_def(rule(B, V), _CNAME, NET, _ST) :-
+isco_apt_name_def(rule(TYPE, B, V), _CNAME, NET, _ST) :-
 	lookup(NET, rules, rules=Rs),
-	isco_apt_add_rule(Rs, rule(B,V)).
+	isco_apt_add_rule(Rs, rule(TYPE, B,V)).
 
 isco_apt_add_rule(Rs, R) :- var(Rs), !, Rs=[R|_].
 isco_apt_add_rule([_|Rs], R) :- isco_apt_add_rule(Rs, R).
@@ -225,16 +230,16 @@ isco_apt_rule_list([R|Rs], NAME, NET, ST) :-
 	!,
 	isco_apt_rule_list(Rs, NAME, NET, ST).
 isco_apt_rule_list([R|Rs], NAME, NET, ST) :-
-	format("%% failing rule def: ~w~n", [R]),
+	format(err, "%% failing rule def: ~w~n", [R]),
 	isco_apt_rule_list(Rs, NAME, NET, ST).
 
-isco_apt_rule(NAME, rule(BODY, VARs), NET, ST) :-
+isco_apt_rule(NAME, rule(TYPE, BODY, VARs), NET, ST) :-
 	isco_field_vars(NET, FVARs),
 	isco_merge_vars(VARs, FVARs),
 	isco_rule_head(NAME, FVARs, NHEAD),
 	isco_rule_body(BODY, ST, NBODY),
 	lookup(NET, prules, prules=RT),
-	insert(RT, rule(NHEAD, NBODY)).
+	insert(RT, rule(TYPE, NHEAD, NBODY)).
 
 
 isco_special(ESL, _ST) :- var(ESL), !.
@@ -294,6 +299,14 @@ isco_rule_body(bagof(A,G,As), ST, bagof(A,NG,As)) :- !,
 
 isco_rule_body(findall(A,G,As), ST, findall(A,NG,As)) :- !,
 	isco_rule_body(G, ST, NG).
+
+isco_rule_body(once(G), ST, once(NG)) :-
+	isco_rule_body(G, ST, NG).
+
+isco_rule_body((U :> G), ST, (U :> NG)) :- isco_rule_body(G, ST, NG).
+isco_rule_body((C :< G), ST, (C :< NG)) :- isco_rule_body(G, ST, NG).
+isco_rule_body((:^ G), ST, (:^ NG)) :- isco_rule_body(G, ST, NG).
+isco_rule_body((:# G), ST, (:# NG)) :- isco_rule_body(G, ST, NG).
 
 isco_rule_body(X^G, ST, X^NG) :- !,
 	isco_rule_body(G, ST, NG).
@@ -366,7 +379,7 @@ isco_rule_rw_goal_args([A|As], _Fs, N, pos, NGOAL, [N|Ps], [], _, 0) :- !,
 	isco_rule_rw_goal_args(As, _Fs, N1, pos, NGOAL, Ps, [], 0, _).
 
 isco_rule_rw_fill_blanks(L, NF, G) :-
-	format("%% fill_blanks(~w, ~w, ~w).~n", [L, NF, G]).
+	format(err, "%% FIXME: fill_blanks(~w, ~w, ~w).~n", [L, NF, G]).
 
 %isco_rule_rw_fill_blanks([], 0, _) :- !.
 %isco_rule_rw_fill_blanks([], N, T) :-
@@ -456,7 +469,7 @@ isco_field_type(f(_,_,T,A), _, _) :-
 	isco_literal_type(V, T).
 isco_field_type(f(_,N,T,_A), C, _) :-
 	isco_default_type(T),
-	format("%% untyped field ~w.~w (default '~w' used)~n", [C, N, T]).
+	format(err, "%% untyped field ~w.~w (default '~w' used)~n", [C, N, T]).
 
 
 isco_internal_domain_field_type(T, CLASS, FIELD, C, F, ST) :-
@@ -464,11 +477,11 @@ isco_internal_domain_field_type(T, CLASS, FIELD, C, F, ST) :-
 	( lookup(NET, super, super=S) ; S=[] ), !,
 	isco_internal_domain_in_classes([CLASS|S], CLASS, FIELD, T, C, F, ST).
 isco_internal_domain_field_type(_T, CLASS, FIELD, C, F, _ST) :-
-	format("%% unknown class in internal domain: ~w.~w: <~w>.~w~n",
+	format(err, "%% unknown class in internal domain: ~w.~w: <~w>.~w~n",
 	           [C, F, CLASS, FIELD]).
 
 isco_internal_domain_in_classes([], CLASS, FIELD, _, C, F, _) :-
-	format("%% unknown field in internal domain: ~w.~w: <~w.>~w)~n",
+	format(err, "%% unknown field in internal domain: ~w.~w: <~w.>~w)~n",
 		[C, F, CLASS, FIELD]), !, fail.
 isco_internal_domain_in_classes([CL|_CLs], _CLASS, FIELD, T, _C, _F, ST) :-
 	lookup(ST, CL, CL=NET),
@@ -476,7 +489,7 @@ isco_internal_domain_in_classes([CL|_CLs], _CLASS, FIELD, T, _C, _F, ST) :-
 	ol_memberchk(f(_, FIELD, T, _), LFs), !.
 isco_internal_domain_in_classes(CLASSES, CLASS, FIELD, _T, C, F, _ST) :-
 	var(CLASSES), !,
-	format("%% unknown class in internal domain: ~w.~w: <~w.>~w)~n",
+	format(err, "%% unknown class in internal domain: ~w.~w: <~w.>~w)~n",
 		[C, F, CLASS, FIELD]), !, fail.
 isco_internal_domain_in_classes([_CL|CLs], CLASS, FIELD, T, C, F, ST) :-
 	isco_internal_domain_in_classes(CLs, CLASS, FIELD, T, C, F, ST).
@@ -514,7 +527,7 @@ isco_field_numbers([F|Fs], N, KF, CNAME) :-
 
 isco_field_number(f(N,_,_,_), N, _) :- !.
 isco_field_number(f(K,NAME,TYPE,_ATTRS), N, CNAME) :-
-	format("%% attempt to renumber field ~w (~w.~w: ~w) as ~w~n",
+	format(err, "%% attempt to renumber field ~w (~w.~w: ~w) as ~w~n",
 		[K, CNAME, NAME, TYPE, N]).
 
 % == Utilities ================================================================
