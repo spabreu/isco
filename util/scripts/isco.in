@@ -2,7 +2,7 @@
 # $Id$
 
 # -----------------------------------------------------------------------------
-#  ISCO is Copyright (C) 1998-2001 Salvador Abreu
+#  ISCO is Copyright (C) 1998-@YEAR@ Salvador Abreu
 #  
 #     This program is free software; you can redistribute it and/or
 #     modify it under the terms of the GNU General Public License as
@@ -48,19 +48,19 @@ ISCOC=iscoc
 PROG=${0##*/}
 
 PREFIX="\
-	$LIBDIR/revision.o \
-	$LIBDIR/apt.o \
-	$LIBDIR/top-level.o \
+	$LIBDIR/ops.pl \
 	$LIBDIR/ctype.o \
-	$LIBDIR/empty-classes.o \
-	$LIBDIR/copyright.o \
+	$LIBDIR/runtime.o \
+	$LIBDIR/backend.o \
+	$LIBDIR/backend-odbc.o \
+	$LIBDIR/backend-pg.o \
 	$LIBDIR/isco_lib_dir.o"
 
 DB="\
-	$PLX/postgresql/interface.pl \
-	$PLX/postgresql/module.o \
-	$PLX/odbc/interface.pl \
-	$PLX/odbc/module.o"
+	$PLXDIR/postgresql/interface.pl \
+	$PLXDIR/postgresql/module.o \
+	$PLXDIR/odbc/interface.pl \
+	$PLXDIR/odbc/module.o"
 
 LIBDB="-L -lodbc -L -lpq"
 
@@ -158,8 +158,9 @@ done
 [ -z "$OUTPUT" ] && exit 0
 
 echo $GPLC -o $OUTPUT $PREFIX $FILES $SUFFIX
+$GPLC -o $OUTPUT $PREFIX $FILES $SUFFIX
 
-[ -z "$KEEP" ] && echo rm -f $PIFILES
+[ -z "$KEEP" -a -n "$PIFILES" ] && rm -f $PIFILES
 
 # Local Variables:
 # mode: shell-script
