@@ -186,7 +186,8 @@ isco_odbc_format(int, _, nextval(SEQ), NVS) :- !,
 isco_odbc_format(bool, pg(_), BV, BV) :- !.
 isco_odbc_format(bool, _, PL_BV, X_BV) :- !, isco_odbc_conv(bool, X_BV, PL_BV).
 
-isco_odbc_format(_TYPE, _, X, X).
+isco_odbc_format(_TYPE, _, S, SS) :-
+	format_to_codes(SS, "~w", [S]).
 
 
 isco_odbc_text_format([], []).
@@ -557,6 +558,9 @@ isco_tsort_level(M, PX, N, X) :-
 % -----------------------------------------------------------------------------
 
 % $Log$
+% Revision 1.3  2003/01/17 14:55:34  spa
+% isco_odbc_format/4 defaults to an atom-to-string conversion.
+%
 % Revision 1.2  2003/01/17 14:26:41  spa
 % re-insert isco_odbc_format/3, as it's used in generated code.
 %
