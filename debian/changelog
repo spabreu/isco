@@ -1,3 +1,23 @@
+isco (2.0-7) unstable; urgency=low
+
+  * src/back-end/sql-schema.pl: isco_schema_attr/4: first clause had an
+    argument too many!
+
+ -- Salvador Abreu <spa@debian.org>  Sat,  1 Mar 2003 00:06:26 +0000
+
+isco (2.0-6) unstable; urgency=low
+
+  * Using OIDs in select queries requires that column indexed be shifted,
+    also in isco_be_get_arg/10.
+
+ -- Salvador Abreu <spa@debian.org>  Wed, 26 Feb 2003 18:54:53 +0000
+
+isco (2.0-5) unstable; urgency=low
+
+  * make clean should clean *everything*!
+
+ -- Salvador Abreu <spa@debian.org>  Tue, 25 Feb 2003 15:27:54 +0000
+
 isco (2.0-4) unstable; urgency=low
 
   * depend on latest gprolog-cx.
