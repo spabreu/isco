@@ -1,3 +1,14 @@
+isco (2.2-8) unstable; urgency=low
+
+  * back-end/prolog.pl: special methods for computed classes.
+  * start raising errors on some failures.
+  * back-end/code/computed.pl: new file
+  * back-end/prolog.pl: supply computed class clauses without implicit
+    arguments (oid, instanceOf), produce inheritance clauses without
+    remaining implicit arguments (connection and mask).
+
+ -- Salvador Abreu <spa@debian.org>  Thu, 10 Apr 2003 23:01:33 +0100
+
 isco (2.2-7) unstable; urgency=low
 
   * rebuild with new gprolog-cx
