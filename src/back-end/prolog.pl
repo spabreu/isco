@@ -386,8 +386,6 @@ isco_prolog_code_delete(CNAME, NET, NFs, Fs) :-
 	BODY = (Bselect, Bdelete),
 	% ---------------------------------------------------------------------
 	nl,
-%	portray_clause((HEADx :- BODYx)), nl,	% just declared args
-%	portray_clause((HEAD0 :- BODY0)), nl,	% ... & oid/iOf
 	portray_clause((HEAD :- BODY1)), nl,	% ... & mask
 	portray_clause((HEAD1 :- BODY)), nl.	% ... & DB channel
 isco_prolog_code_delete(_, _, _, _).
@@ -397,30 +395,33 @@ isco_prolog_code_delete(_, _, _, _).
 
 % Schema for tuple update predicates:
 % name: isco_update__NAME
-% arity: 2*ARITY
+% arity: 2*ARITY+1
 % args: 1st half is for the SET part
 %       2nd half is for the WHERE clause
+%       last arg is the goal to try before updating
 %
 % Done at compile time:
 % - all the SET skeleton, except for the values
 % Done at runtime:
-% - 
+% - the rest.
+%
+% This is now adapted from the "delete" code.
 
 isco_prolog_code_update(CNAME, NET, NFs, Fs) :-
 	lookup(NET, atrib, atrib=As),
-	ol_memberchk(mutable, As),
+	ol_memberchk(mutable, As),		% only for mutable classes
 	( ol_memberchk(external(XID, XNAME), As) ; XID=isco, XNAME=CNAME ),
 	!,
 	atom_concat('isco_update__', CNAME, ISCO_NAME),
-	ARITY is NFs * 2,
-	functor(HEAD, ISCO_NAME, ARITY),
-	HEAD =.. [HF | HA], HEAD1 =.. [HF, CH | HA],
+	ARITY is NFs+1+(NFs-2)+1,		% WHERE v, MASK, SET v, GOAL
+	functor(HEADNC, ISCO_NAME, ARITY),
+	HEADNC =.. [HF | HA], HEAD1 =.. [HF, CH | HA],
 	( XID=isco ->
 	    BODY1 = (isco_connection(CH), HEAD1)
 	;   atom_concat('isco_', XID, ISCO_XID),
 	    BODY1 = (isco_connection(ISCO_XID, CH), HEAD1) ),
 	nl,
-	portray_clause((HEAD :- BODY1)),
+	portray_clause((HEADNC :- BODY1)),
 	!,
 %% -- Legend for body variables -----------------------------------------------
 %%
@@ -428,20 +429,33 @@ isco_prolog_code_update(CNAME, NET, NFs, Fs) :-
 %% B1   = (construct SET part, will build Q_S, args in QA_S, uses H_S)
 %% B2   = (construct WHERE part, will build Q_W, args in QA_W, uses H_W)
 %% B3   = (finalize query and do the thing)
-
-	length(HA_W, NFs),			% head args for WHERE...
-	append(_, HA_W, HA),			% ...are at the end of HA.
-	H_S = HEAD,				% head for SET.
-	H_W =.. [HF | HA_W],			% "head" for WHERE
-	format_to_codes(QPFX, 'update ~w set', [XNAME]),
-	BODY = (Q0 = QPFX, B1),
-	isco_update_set(NFs, Fs, H_S, B1, B2, Q0, Q1),
-	isco_update_where(NFs, Fs, CH, H_W, B2, B3, Q1, QUERY),
-	B3 = (( g_read(isco_debug_sql, 1) ->
-		  format('sql: ~s~n', [QUERY]) ; true ),
-	      isco_be_exec(CH, QUERY, _SH)),
+	% ---------------------------------------------------------------------
+	isco_prolog_class_head(CNAME, NFs, Fs, HEAD0, VARs, OC_VAR),
+	isco_prolog_class_body(VARs, XNAME, HEAD0, Bselect, CH, OC_VAR),
+	% ---------------------------------------------------------------------
+	HEAD0 =.. [_|HAx],
+	HAx = [OID, IOF | _],			% pin down oid and iOf
+	HEAD2 =.. [ISCO_NAME, CH | HA],
+	% ---------------------------------------------------------------------
+	NFsm2 is NFs-2,
+	append(HAx, _, HA),
+	append(HA_WM, [HA_M], HAx),
+	append(HA_WMS, [HA_G], HA),		% HA_G: head arg for GOAL
+	length(HA_S, NFsm2),			% HA_W: head args for WHERE...
+	append(HA_W, [HA_M|HA_S], HA_WMS),	% ...are at the end of HA.
+	BODY = ((Bselect,
+		 format_to_codes(Q0, 'update ~w set', [IOF]),
+		 B1)),
+	H_S =.. [CNAME, _, _ | HA_S],		% head for SET (fake OID, IOF).
+	isco_update_set(NFsm2, Fs, H_S, B1, B2, Q0, Q1),
+	B2 = ((call(HA_G) ->
+	       format_to_codes(QUERY, '~s where oid=~w', [Q1, OID]),
+	       ( g_read(isco_debug_sql, 1) ->
+		   format('sql: ~s~n', [QUERY]) ; true ),
+	       isco_be_exec(CH, QUERY, _SH)
+	      ;	  fail )),
 	nl,
-	portray_clause((HEAD1 :- BODY)),
+	portray_clause((HEAD2 :- BODY)),
 	nl.
 isco_prolog_code_update(_, _, _, _).
 
@@ -461,36 +475,15 @@ isco_prolog_code_update(_, _, _, _).
 isco_update_set(N, Fs, H, Gin, Gout, SCin, SCout) :-
 	isco_update_set(N, Fs, H, "", Gin, Gout, SCin, SCout).
 
+%%DBG isco_update_set(A, B, C, D, E, F, G, H) :-	% debug code
+%%DBG	write(isco_update_set(A, B, C, D, E, F, G, H)), nl, fail.
+
 isco_update_set(0, _, _, _, G, G, SC, SC) :- !.
 isco_update_set(N, [f(P,FN,T,_A)|Fs], H, PF, Gin, Gout, SCin, SCout) :-
 	arg(P, H, V),
 	Gin = (isco_update_set_var(V, FN, T, PF, PFnew, SCin, SCint), Gint),
 	N1 is N-1,
 	isco_update_set(N1, Fs, H, PFnew, Gint, Gout, SCint, SCout).
-
-% -- WHERE part of tuple update -----------------------------------------------
-
-%% -- Arguments: --------------------------------------------------------------
-%%   -N			Number of fields yet to be seen
-%%   -Fs		Field list
-%%   -C                 Back-end connection variable
-%%   -H			Where the arguments should come from (clause head)
-%%   -PF		Prefix (either 'where' or 'and')
-%%   +Gin			Start of body
-%%   +Gout		Body continuation
-%%   +WCin		WHERE clause (previous)
-%%   +WCout		WHERE clause (result)
-
-isco_update_where(N, Fs, C, H, Gin, Gout, WCin, WCout) :-
-	isco_update_where(N, Fs, C, H, 'where', Gin, Gout, WCin, WCout).
-
-isco_update_where(0, _, _, _, _, G, G, WC, WC) :- !.
-isco_update_where(N, [f(P,FN,T,_A)|Vs], C, H, PF, Gin, Gout, WCin, WCout) :-
-	arg(P, H, V),
-	Gin = (isco_where_var(C, V, FN, T, PF, PFnew, WCin, WCint), Gint),
-	N1 is N-1,
-	isco_update_where(N1, Vs, C, H, PFnew, Gint, Gout, WCint, WCout).
-
 
 % -- Clauses to get the list of argument names from a class -------------------
 
@@ -614,6 +607,9 @@ isco_prolog_sequence(NAME, ATTRs) :-
 % -----------------------------------------------------------------------------
 
 % $Log$
+% Revision 1.10  2003/03/09 01:54:11  spa
+% New code for update!
+%
 % Revision 1.9  2003/03/07 23:01:05  spa
 % Sequence ops must yield strings, not atoms.
 %

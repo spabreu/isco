@@ -364,7 +364,7 @@ isco_update_set_var(V, FN, T, PFi, PFo, SCi, SCo) :- % glue
 isco_update_set_var(_, V, _,  _, PF, PF,  SC,   SC) :- var(V), !.
 isco_update_set_var(C, V, FN, T, PF, ",", SCin, SCout) :-
 	isco_odbc_format(T, C, V, VF),
-	format_to_codes(SCout, "~s~s ~w=~w", [SCin, PF, FN, VF]).
+	format_to_codes(SCout, "~s~s ~w=~s", [SCin, PF, FN, VF]).
 
 % -- Create "ORDER BY" list for SELECT goal -----------------------------------
 
@@ -472,14 +472,24 @@ isco_has_subclass(SUPER, SUB) :-
 
 isco_term_expansion((R:=N@A), G) :- !, isco_term_expansion((R@A:=N), G).
 
-isco_term_expansion((RELNAME @ ARGS := NEWARGS), GOAL) :-
-	isco_class(RELNAME, NUMARGS),
-	ARITY is NUMARGS * 2,
+isco_term_expansion((RELNAME @ ARGS := NEWARGS / G), GOAL) :-
 	!,
+	isco_class(RELNAME, NUMARGS),
+	ARITY is NUMARGS+1+(NUMARGS-2)+1,
 	atom_concat('isco_update__', RELNAME, PREDNAME),
 	functor(GOAL, PREDNAME, ARITY),
-	isco_arg_list(NEWARGS, GOAL, RELNAME),
-	isco_arg_list(ARGS, GOAL, RELNAME, NUMARGS, 0, _).
+	arg(ARITY, GOAL, G),
+	isco_order_tuple(ARGS, NARGS, ORDER),
+	isco_arg_list(NARGS, GOAL, RELNAME, 0, 0, MASK),
+	isco_order_clause(ORDER, ORDER_CLAUSE),
+	NUMARGSp1 is NUMARGS+1,
+	arg(NUMARGSp1, GOAL, ORDER_CLAUSE+MASK),
+	NUMARGSp2 is NUMARGS+1-2, % -2: omit OID and IOF, +1: skip OC+M
+	isco_arg_list(NEWARGS, GOAL, RELNAME, NUMARGSp2, 0, _).
+
+isco_term_expansion((RELNAME @ ARGS := NEWARGS), GOAL) :-
+	isco_term_expansion((RELNAME @ ARGS := NEWARGS / true), GOAL).
+
 
 % -- ISCO/Prolog non-positional argument goal call ----------------------------
 
@@ -532,14 +542,10 @@ isco_term_expansion((RELNAME := NEWARGS), GOAL) :-
 isco_term_expansion((RELNAME_ARGS := NEWARGS), GOAL) :-
 	functor(RELNAME_ARGS, RELNAME, _NUMARGS), % what relation is this?
 	isco_class(RELNAME, NUMARGS),		% do we know about it?
-	ARITY is NUMARGS * 2,
 	!,
-	atom_concat('isco_update__', RELNAME, PREDNAME),
-	functor(GOAL, PREDNAME, ARITY),
-	RELNAME_ARGS =.. [_ | ARGLIST],
 	isco_arglist_to_args(ARGLIST, ARGS),
-	isco_arg_list(NEWARGS, GOAL, RELNAME),
-	isco_arg_list(ARGS, GOAL, RELNAME, NUMARGS, 0, _).
+	isco_term_expansion((RELNAME@ARGS:=NEWARGS), GOAL).
+
 
 % -- ISCO/Prolog delete goal --------------------------------------------------
 
@@ -645,6 +651,9 @@ isco_tsort_level(M, PX, N, X) :-
 % -----------------------------------------------------------------------------
 
 % $Log$
+% Revision 1.10  2003/03/09 01:54:26  spa
+% New code for update!
+%
 % Revision 1.9  2003/03/07 23:01:21  spa
 % boolean conversions...
 %
