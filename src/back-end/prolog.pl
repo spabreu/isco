@@ -601,6 +601,14 @@ isco_prolog_class_inheritance(_, _).
 
 
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+% determine whether a class has no subclasses.
+
+isco_prolog_no_subclasses(CNAME) :-
+	lookup(ST, CNAME, _=NET),
+	subclass(CNAME, NET, _), !, fail.
+isco_prolog_no_subclasses(_).
+
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 % isco_automagic_inheritance/2: succeeds if no special measures
 
@@ -736,6 +744,10 @@ isco_prolog_sequence(NAME, ATTRs) :-
 % -----------------------------------------------------------------------------
 
 % $Log$
+% Revision 1.21  2004/04/27 12:46:39  spa
+% - Support for avoiding use of "c.relname ... where c.oid=o.tableoid"
+%   when possible (final classes).
+%
 % Revision 1.20  2003/09/23 12:28:21  spa
 % WIP: update for computed classes.
 % fix term type: should not create atoms!
