@@ -1,7 +1,7 @@
 # $Id$
 
 # -----------------------------------------------------------------------------
-#  ISCO is Copyright (C) 1998-2001 Salvador Abreu
+#  ISCO is Copyright (C) 1998-2003 Salvador Abreu
 #  
 #     This program is free software; you can redistribute it and/or
 #     modify it under the terms of the GNU General Public License as
@@ -41,11 +41,15 @@ clean:
 	for DIR in $(SUBDIRS); do $(MAKE) -C $$DIR $@; done
 
 distclean: clean
-	find -name \*.in | sed -e 's/\.in$$//'
+	rm -rf config.* autom4te.cache
+	find -name \*.in | sed -e 's/\.in$$//' | xargs rm -vf
 
 .PHONY: all install clean distclean
 
 # $Log$
+# Revision 1.3  2003/01/07 18:10:21  spa
+# Some minor cleanup stuff.
+#
 # Revision 1.2  2003/01/07 18:07:32  spa
 # Changes to makefiles...
 #
