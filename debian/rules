@@ -7,7 +7,7 @@ package=isco
 build:
 	$(checkdir)
 	autoconf
-	configure --prefix=/usr
+	./configure --prefix=/usr
 	make all
 	touch build
 
