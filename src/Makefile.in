@@ -53,6 +53,10 @@ PLFILES = \
 	runtime/backend-odbc.pl \
 	back-end/code-gen-directives.pl \
 	back-end/prolog.pl \
+	back-end/prolog-pg7.pl \
+	back-end/prolog-pg6.pl \
+	back-end/prolog-pg6class.pl \
+	back-end/prolog-sql.pl \
 	back-end/sql.pl \
 	back-end/sql-schema.pl \
 	symtab.pl \
@@ -77,6 +81,10 @@ ISCOC_OBJECTS = \
 	cmdline.o \
 	back-end/code-gen-directives.o \
 	back-end/prolog.o \
+	back-end/prolog-pg7.o \
+	back-end/prolog-pg6.o \
+	back-end/prolog-pg6class.o \
+	back-end/prolog-sql.o \
 	back-end/sql.o \
 	back-end/sql-schema.o \
 	isco_lib_dir.o
@@ -100,6 +108,10 @@ LIB_OBJECTS = \
 	runtime/backend-pg.o \
 	runtime/backend-odbc.o \
 	back-end/prolog.o \
+	back-end/prolog-pg7.o \
+	back-end/prolog-pg6.o \
+	back-end/prolog-pg6class.o \
+	back-end/prolog-sql.o \
 	back-end/sql.o \
 	back-end/sql-schema.o
 
@@ -183,6 +195,9 @@ revision.pl: revision.pl.in ../debian/changelog
 
 
 # $Log$
+# Revision 1.9  2003/03/16 09:14:40  spa
+# New back-end files (prolog-{pg7,pg6,pg6class,sql}).
+#
 # Revision 1.8  2003/03/05 01:22:22  spa
 # *** empty log message ***
 #
