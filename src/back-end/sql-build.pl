@@ -26,9 +26,14 @@
 
 % == SQL code generation (schema) for ISCO ====================================
 
-emit :- isco_sequence(SEQ, regular), isco_sql_code(SEQ), fail.
-emit :- nl, isco_schema_class(REL), isco_sql_code(REL), fail.
-emit.
+% note: isco_schema_class/1 returns classes after a topological sort, yielding
+%       the least dependant classes first.
+
+emit :- emit(_).
+
+emit(SEQ) :- isco_sequence(SEQ, regular), isco_sql_code(SEQ), nl, fail.
+emit(REL) :- nl, isco_schema_class(REL), isco_sql_code(REL), nl, fail.
+emit(_).
 
 
 build :- build(_).
@@ -40,20 +45,25 @@ build(REL) :-
 
 build(STREAM, REL) :-
 	isco_connection(CH),			% back-end connection
-	open_output_codes_stream(OUT),
-	add_stream_alias(OUT, sql),
-	set_output(sql),
-	( isco_sequence(REL, regular) ; isco_schema_class(REL) ),
+	open_output_codes_stream(OUT), add_stream_alias(OUT, sql),
+	set_output(sql),			% open codes stream alias
+	( isco_sequence(REL, regular)
+	; isco_schema_class(REL) ),
 	isco_sql_code(REL),			% generate SQL code (nondet)
+	flush_output(sql),
 	close_output_codes_stream(sql, SQL),	% get output
-	open_output_codes_stream(OUT2),		% reopen stream
-	add_stream_alias(OUT2, sql),
-	set_output(sql),
+	set_output(STREAM),
 	(g_read(isco_debug_sql, 1) ->
-	    format(STREAM, 'sql(~w): ~s', [CH, SQL]); true),
-	catch(isco_be_exec(CH, SQL, _),
+	    format(STREAM, 'sql(~w): ~s ...', [CH, SQL]),
+	    flush_output(STREAM)
+%	    get0(_)
+	;   true),
+	catch((isco_be_exec(CH, SQL, _),
+	       g_read(isco_debug_sql,1) -> format(STREAM, ' ok\n', []) ; true),
 	      error(system_error(ERROR), _PRED),
-	      format(STREAM, 'warning: ~w', [ERROR])),
+	      format(STREAM, ' warning:\n~w', [ERROR])),
+	open_output_codes_stream(OUT2), add_stream_alias(OUT2, sql),
+	set_output(sql),			% reopen codes stream alias
 	fail.
 build(STREAM, _) :-
 	( close_output_codes_stream(sql, _) -> true ; true ),
@@ -72,7 +82,7 @@ isco_sql_code(REL) :- isco_sql_code(REL, o_rel).
 
 isco_sql_code(SNAME, _) :-
 	isco_sequence(SNAME, regular),
-	format('create sequence "~w";\n', [SNAME]).
+	format('create sequence "~w";', [SNAME]).
 
 isco_sql_code(REL, DBTYPE) :-
 	isco_class(REL, _),
@@ -88,9 +98,13 @@ isco_sql_code(REL, DBTYPE) :-
 
 % -- Generate the SQL table creation ------------------------------------------
 
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
 isco_sql_header(CNAME, '\n') :-
 	format('create table "~w" (', [CNAME]).
 
+
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 isco_sql_fields(REL, o_rel, COMMA) :- !,
 	isco_class(REL, ARITY),
@@ -101,6 +115,8 @@ isco_sql_fields(REL, rel, COMMA) :- !,
 	isco_class(REL, ARITY),
 	isco_sql_fields(0, ARITY, REL, COMMA).
 
+
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 isco_sql_fields(N, N, _, _) :- !.
 isco_sql_fields(N, M, R, X) :-
@@ -116,6 +132,8 @@ isco_sql_fields(N, M, R, X) :-
 	    (	isco_sql_field_attributes(R, F), fail ; true ),
 	    NEXT_X=',\n' ),
 	isco_sql_fields(N1, M, R, NEXT_X).
+
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 isco_sql_field_attributes(CLASS, FIELD) :-
 	isco_field_default(CLASS, FIELD, DEFAULT),
@@ -137,9 +155,20 @@ isco_sql_field_attributes(CLASS, FIELD) :-
 
 isco_sql_field_attributes(CLASS, FIELD) :-
 	isco_field_domain(CLASS, FIELD, RCLASS, RFIELD),
+	isco_has_subclass(RCLASS, _), !,
+	% ---------------------------------------------------------------------
+	% the domain is the root of an inheritance hierarchy: must use a
+	% domain-verification function...
+	% ---------------------------------------------------------------------
+	format(' check (ok_~w_~w ("~w"))', [RCLASS, RFIELD, FIELD]).
+
+isco_sql_field_attributes(CLASS, FIELD) :-
+	isco_field_domain(CLASS, FIELD, RCLASS, RFIELD),
 	format(' references "~w" ("~w") deferrable', [RCLASS, RFIELD]).
 
 
+
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 isco_sql_class_attributes(REL, _) :-
 	isco_subclass(SC, REL), isco_compound_key(SC, FIELDs), !,
@@ -157,11 +186,13 @@ isco_sql_class_keylist([F|Fs], PFX) :-
 
 isco_sql_trail(REL, o_rel) :-
 	isco_superclass(REL, SC), !,
-	format(')\n    inherits ("~w");\n', [SC]).
+	format(')\n    inherits ("~w");', [SC]).
 isco_sql_trail(_, _) :-
-	format(');\n', []).
+	format(');', []).
 
 
+
+% -----------------------------------------------------------------------------
 
 isco_sql_extra_stuff(REL, _) :-
 	isco_compound_index(REL, FIELDs),
@@ -170,24 +201,53 @@ isco_sql_extra_stuff(REL, _) :-
 	format('create index "~w_~w" on "~w" (', [RELX, RELXN1, REL]),
 	isco_sql_class_keylist(FIELDs, ''),
 	format(');', []).
+
 isco_sql_extra_stuff(REL, _) :-
 	isco_field_index(REL, FNAME),
 	atom_concat(ci__, REL, RELX),
 	g_read(RELX, RELXN), RELXN1 is RELXN+1, g_assign(RELX, RELXN1),
 	format('create index "~w__~w" on "~w" (', [RELX, RELXN1, REL]),
 	format('"~w");', [FNAME]).
+
 isco_sql_extra_stuff(REL, _) :-
 	once((isco_superclass(REL, SC),
 	      isco_field_key(REL, K),		% primary key shared w/ super
 	      isco_field_key(SC, K))),
-	format('alter table "~w" add constraint "~w_pkey" primary key ("~w");\n',
+	format('alter table "~w" add constraint "~w_pkey" primary key ("~w");',
 	       [REL, REL, K]).
-isco_sql_extra_stuff(_, _).
+
+isco_sql_extra_stuff(REL, _) :-
+	isco_field_key(REL, FIELD),
+	once(isco_has_subclass(REL, _)),
+	isco_field(REL, FIELD, _POS, ITYPE),
+	isco_odbc_generated_type(ITYPE, TYPE),
+	format('create function ni_~w_~w (~w) returns bigint\n',
+	       [REL, FIELD, TYPE]),
+	format(' as \'select count(*) from "~w" where "~w" = $1\'\n',
+	       [REL, FIELD]),
+	format('  language \'sql\';', []).
+
+isco_sql_extra_stuff(REL, _) :-
+	isco_field_key(REL, FIELD),
+	once(isco_has_subclass(REL, _)),
+	isco_field(REL, FIELD, _POS, ITYPE),
+	isco_odbc_generated_type(ITYPE, TYPE),
+	format('create function ok_~w_~w (~w) returns bool\n',
+	       [REL, FIELD, TYPE]),
+	format(' as \'select ni_~w_~w($1) = 1\' language \'sql\';',
+	       [REL, FIELD]).
 
 
 % -----------------------------------------------------------------------------
 
 % $Log$
+% Revision 1.2  2003/04/10 16:46:19  spa
+% predicates emit and build now come both in /0 and /1 forms.
+% build/2 takes special care not to do anything silly...
+% avoid spurious newlines at the end of SQL commands.
+% resort to domain-checking functions when appropriate (eg. keys, "references").
+% isco_sql_extra_stuff/2: don't gratuitously succeed at the end...
+%
 % Revision 1.1  2003/03/30 22:58:13  spa
 % Rename sql.pl to sql-build.pl, to avoid collision with code/sql.pl.
 %
