@@ -111,7 +111,7 @@ isco_sql_field_attributes(CLASS, FIELD) :-
 
 
 isco_sql_class_attributes(REL, _) :-
-	isco_compound_key(REL, FIELDs), !,
+	isco_subclass(SC, REL), isco_compound_key(SC, FIELDs), !,
 	format(',~n    primary key (', []),
 	isco_sql_class_keylist(FIELDs, ''),
 	format(')', []).
@@ -126,9 +126,20 @@ isco_sql_class_keylist([F|Fs], PFX) :-
 
 isco_sql_trail(REL, o_rel) :-
 	isco_superclass(REL, SC), !,
-	format(')\n    inherits ("~w");\n', [SC]).
+	format(')\n    inherits ("~w");\n', [SC]),
+	isco_sql_inherited_key(REL).
 isco_sql_trail(_, _) :-
 	format(');\n', []).
+
+
+isco_sql_inherited_key(REL) :-
+	isco_superclass(REL, SC),
+	isco_field_key(REL, K),			% primary key shared w/ super
+	isco_field_key(SC, K),
+	!,
+	format('alter table "~w" add constraint "~w_pkey" primary key ("~w");\n',
+	       [REL, REL, K]).
+isco_sql_inherited_key(_).
 
 
 isco_sql_extra_stuff(REL, _) :-
@@ -150,6 +161,9 @@ isco_sql_extra_stuff(_, _).
 % -----------------------------------------------------------------------------
 
 % $Log$
+% Revision 1.3  2003/03/10 23:18:03  spa
+% Create indexes in subclasses, whenever needed.
+%
 % Revision 1.2  2003/03/07 15:30:27  spa
 % *** empty log message ***
 %
