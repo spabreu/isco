@@ -543,6 +543,7 @@ isco_term_expansion((RELNAME_ARGS := NEWARGS), GOAL) :-
 	functor(RELNAME_ARGS, RELNAME, _NUMARGS), % what relation is this?
 	isco_class(RELNAME, NUMARGS),		% do we know about it?
 	!,
+	RELNAME_ARGS =.. [_ | ARGLIST],
 	isco_arglist_to_args(ARGLIST, ARGS),
 	isco_term_expansion((RELNAME@ARGS:=NEWARGS), GOAL).
 
@@ -651,6 +652,9 @@ isco_tsort_level(M, PX, N, X) :-
 % -----------------------------------------------------------------------------
 
 % $Log$
+% Revision 1.11  2003/03/10 22:18:34  spa
+% Don't forget about args in REL(ARGS):=NEWARGS.
+%
 % Revision 1.10  2003/03/09 01:54:26  spa
 % New code for update!
 %
