@@ -151,24 +151,27 @@ LC_ALL=en_US
 export LC_ALL
 
 for IFILE in $IFILES; do
-  [ -n "$COMPILE" ] && PIFILE=${IFILE%.isco}.pl
-  [ -z "$COMPILE" ] && PIFILE=$(tempfile -p isco -s .pl)
-  [ -n "$VERBOSE" ] && echo $ISCOC -c $IFILE ">" $PIFILE
+  if [ -n "$COMPILE" ]; then
+    PIFILE=${IFILE%.isco}.pl
+  else
+    PIFILE=$(tempfile -p isco -s .pl)
+  fi
+  [ -n "$VERBOSE" ] && echo 1>&2 $ISCOC -c $IFILE ">" $PIFILE
   $ISCOC -c $IFILE > $PIFILE
   FILES="$FILES$SEP$PIFILE"
   SEP=" "
-  [ -n "$COMPILE" ] && { PIFILES="$PIFILES$PISEP$PIFILE"; PISEP=" " }
+  [ -n "$COMPILE" ] && { PIFILES="$PIFILES$PISEP$PIFILE"; PISEP=" "; }
 done
 
 [ -z "$OUTPUT" ] && exit 0
 
-[ -n "$VERBOSE" ] && echo $GPLC -o $OUTPUT $PREFIX $FILES $SUFFIX
+[ -n "$VERBOSE" ] && echo 1>&2 $GPLC -o $OUTPUT $PREFIX $FILES $SUFFIX
 $GPLC -o $OUTPUT $PREFIX $FILES $SUFFIX
 
-[ -z "$KEEP" -a -n "$PIFILES" ] && {
-    [ -n "$VERBOSE" ] && echo rm -f $PIFILES
+if [ -z "$KEEP" -a -n "$PIFILES" ]; then
+    [ -n "$VERBOSE" ] && echo 1>&2 rm -f $PIFILES
     rm -f $PIFILES
-}
+fi
 
 # Local Variables:
 # mode: shell-script
