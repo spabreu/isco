@@ -1,0 +1,241 @@
+isco (2.0-0.1) unstable; urgency=low
+
+  * New version based on gprolog-cx.
+  * split off into several source packages: the database interfaces, the
+    php front-end and pillow are no longer here.
+  * code-gen-schema.pl: isco_schema_trailer/1 needed a few cuts.
+  * code-gen-prolog.pl: default clauses with implicit ST.
+  * code-gen-prolog.pl: pq_open/4 now takes codes args, not atoms.
+  * code-gen-prolog.pl: pass connection argument to isco_where_var.
+  * new file code-gen-directives.pl: emit directives before schema.
+  * generally try to use codes instead of atoms.
+
+ -- Salvador Abreu <spa@debian.org>  Wed, 15 May 2002 09:39:07 +0100
+
+isco (1.109-9) unstable; urgency=low
+
+  * apt.pl: call/1 is now inlined.
+
+ -- Salvador Pinto Abreu <spa@di.uevora.pt>  Thu, 30 Aug 2001 08:32:24 +0100
+
+isco (1.109-8) unstable; urgency=low
+
+  * apt.pl: properly deal with variable goals.
+
+ -- Salvador Pinto Abreu <spa@di.uevora.pt>  Wed, 29 Aug 2001 17:37:40 +0100
+
+isco (1.109-7) unstable; urgency=low
+
+  * apt.pl: translate call/1 and catch/3.
+  * runtime.pl: better handling of transactions (not there yet, but
+    getting closer...)
+
+ -- Salvador Pinto Abreu <spa@di.uevora.pt>  Mon, 27 Aug 2001 16:42:31 +0100
+
+isco (1.109-6) unstable; urgency=low
+
+  * code-gen-prolog.pl: add support for retrieving sequence values on
+    insert.
+
+ -- Salvador Pinto Abreu <spa@di.uevora.pt>  Fri, 24 Aug 2001 23:18:23 +0100
+
+isco (1.109-5) unstable; urgency=low
+
+  * Symbol table is now preloaded in cmdline.pl, not apt.pl.
+
+ -- Salvador Pinto Abreu <spa@di.uevora.pt>  Fri, 24 Aug 2001 19:43:08 +0100
+
+isco (1.109-4) unstable; urgency=low
+
+  * code-gen-sql.pl: create shorter names for field "index" attributes.
+
+ -- Salvador Pinto Abreu <spa@di.uevora.pt>  Fri, 24 Aug 2001 19:19:44 +0100
+
+isco (1.109-3) unstable; urgency=low
+
+  * cmdline.pl: make "-d DBNAME" actually work!
+
+ -- Salvador Pinto Abreu <spa@di.uevora.pt>  Fri, 24 Aug 2001 19:03:17 +0100
+
+isco (1.109-2) unstable; urgency=low
+
+  * code-gen-sql.pl: format differently and include field name in index.
+
+ -- Salvador Pinto Abreu <spa@di.uevora.pt>  Fri, 24 Aug 2001 17:07:56 +0100
+
+isco (1.109-1) unstable; urgency=low
+
+  * apt.pl, code-gen-schema.pl, code-gen-sql.pl, ops.pl, parser.pl,
+    empty-classes.pl: Add support for non-key indices.
+  * symtab.pl: new predicate ol_member/3.
+  * runtime.pl: rework isco_tsort_level/4 and isco_requires/2 so they do
+    what they're supposed to.
+  * postgres/pl-pq.c: fail when select returns zero tuples!
+
+ -- Salvador Pinto Abreu <spa@di.uevora.pt>  Fri, 24 Aug 2001 15:26:02 +0100
+
+isco (1.108-2) unstable; urgency=low
+
+  * cmdline.pl, debian/rules: don't forget to install/use the new
+    PostgreSQL stuff!
+
+ -- Salvador Pinto Abreu <spa@di.uevora.pt>  Fri, 24 Aug 2001 08:27:53 +0100
+
+isco (1.108-1) unstable; urgency=low
+
+  * Incorporate native PostgreSQL access.
+
+ -- Salvador Pinto Abreu <spa@di.uevora.pt>  Thu, 23 Aug 2001 23:37:42 +0100
+
+isco (1.107-6) unstable; urgency=low
+
+  * code-gen-prolog.pl: insert also needs variable names, for the same
+    reason as select.
+
+ -- Salvador Pinto Abreu <spa@di.uevora.pt>  Tue, 21 Aug 2001 14:24:45 +0100
+
+isco (1.107-5) unstable; urgency=low
+
+  * runtime.pl: Revert to ' from " in SQL generation.
+
+ -- Salvador Pinto Abreu <spa@di.uevora.pt>  Fri, 17 Aug 2001 14:31:33 +0100
+
+isco (1.107-4) unstable; urgency=low
+
+  * apt.pl: isco_rule_rw_goal_args/9: produce ORDER_BY+MASK even if
+    ORDER_BY is empty.  Effect in clause bodies.
+  * runtime.pl: isco_term_expansion/2: handle ':\' goal: it's now postfix,
+    as per the docs.  Added ':+' goal, together with corresponding
+    operator in ops.pl.
+  * runtime.pl: isco_odbc_format/3: use double-quotes in result.
+  * code-gen-sql.pl: isco_sql_code/{0,2}: generate sequences before classes.
+  * code-gen-schema.pl: isco_schema/1, isco_schema_entry/5,
+    isco_schema_trailer/1: generate code for compound key schema.
+  * apt.pl: isco_apt/2: preload symbol table with 'isco' database.
+  * runtime.pl: new isco_schema_class/1, for topologic sort of classes by
+    dependency.
+
+ -- Salvador Pinto Abreu <spa@di.uevora.pt>  Sun, 29 Jul 2001 21:17:50 +0100
+
+isco (1.107-3) unstable; urgency=low
+
+  * sequence/1 is again sequence/2 (indicates source).
+  * isco_field_domain/4 in empty-classes.pl.
+  * generate proper schema: only regular classes and sequences.
+
+ -- Salvador Pinto Abreu <spa@di.uevora.pt>  Sun, 24 Jun 2001 00:18:44 +0100
+
+isco (1.107-2) unstable; urgency=low
+
+  * Minor bug fixes and force new package version.
+
+ -- Salvador Pinto Abreu <spa@di.uevora.pt>  Wed, 20 Jun 2001 11:15:59 +0100
+
+isco (1.107-1) unstable; urgency=low
+
+  * Implemented "iscoc -p" to produce php-ready executables.
+  * isco_superclass/2 had no default (see isco_schema_entry/5).
+
+ -- Salvador Pinto Abreu <spa@di.uevora.pt>  Tue, 19 Jun 2001 19:06:37 +0100
+
+isco (1.106-8) unstable; urgency=low
+
+  * Dependency on new PHP build.
+
+ -- Salvador Pinto Abreu <spa@di.uevora.pt>  Tue, 19 Jun 2001 15:02:58 +0100
+
+isco (1.106-7) unstable; urgency=low
+
+  * External sequences now working.
+
+ -- Salvador Pinto Abreu <spa@di.uevora.pt>  Fri, 15 Jun 2001 16:56:16 +0100
+
+isco (1.106-6) unstable; urgency=low
+
+  * isco_sequence/2 should have been isco_sequence/1!
+
+ -- Salvador Pinto Abreu <spa@di.uevora.pt>  Fri, 15 Jun 2001 14:28:22 +0100
+
+isco (1.106-5) unstable; urgency=low
+
+  * Fixed internal ref sequences (serials).
+
+ -- Salvador Pinto Abreu <spa@di.uevora.pt>  Wed, 13 Jun 2001 15:43:43 +0100
+
+isco (1.106-4) unstable; urgency=low
+
+  * isco_odbc_list_to_tuple/2 fixed (was nondet!!!)
+
+ -- Salvador Pinto Abreu <spa@di.uevora.pt>  Wed, 13 Jun 2001 14:51:29 +0100
+
+isco (1.106-3) unstable; urgency=low
+
+  * Schema trailer entry for sequence/2 was missing in code-gen-schema.pl.
+
+ -- Salvador Pinto Abreu <spa@di.uevora.pt>  Wed, 13 Jun 2001 12:23:44 +0100
+
+isco (1.106-2) unstable; urgency=low
+
+  * Misc fixes (see CVS log).
+
+ -- Salvador Pinto Abreu <spa@di.uevora.pt>  Wed, 13 Jun 2001 09:48:24 +0100
+
+isco (1.106-1) unstable; urgency=low
+
+  * Added implicit sequences.
+
+ -- Salvador Pinto Abreu <spa@di.uevora.pt>  Tue, 12 Jun 2001 23:35:17 +0100
+
+isco (1.105-2) unstable; urgency=low
+
+  * Fixed gprolog direct HTML output.
+
+ -- Salvador Pinto Abreu <spa@di.uevora.pt>  Tue, 12 Jun 2001 21:23:05 +0100
+
+isco (1.105-1) unstable; urgency=low
+
+  * Added PiLLoW support.
+
+ -- Salvador Pinto Abreu <spa@di.uevora.pt>  Tue, 12 Jun 2001 20:02:55 +0100
+
+isco (1.104-2) unstable; urgency=low
+
+  * New version of the PHP module: optional debugging.
+
+ -- Salvador Pinto Abreu <spa@di.uevora.pt>  Tue, 12 Jun 2001 17:36:32 +0100
+
+isco (1.104-1) unstable; urgency=low
+
+  * "delete" operation.  automatic term_expansion in php top-level.
+
+ -- Salvador Pinto Abreu <spa@di.uevora.pt>  Tue, 12 Jun 2001 11:25:08 +0100
+
+isco (1.103-5) unstable; urgency=low
+
+  * Flush output in PHP top-level on error.
+
+ -- Salvador Pinto Abreu <spa@di.uevora.pt>  Wed,  6 Jun 2001 14:25:42 +0100
+
+isco (1.103-4) unstable; urgency=low
+
+  * Alternate syntax for PRIMARY KEY constraint (unnamed) in Parser.cup.
+
+ -- Salvador Pinto Abreu <spa@di.uevora.pt>  Tue,  5 Jun 2001 14:07:20 +0100
+
+isco (1.103-3) unstable; urgency=low
+
+  * Fixed runtime path for "ops.pl".
+
+ -- Salvador Pinto Abreu <spa@di.uevora.pt>  Tue,  5 Jun 2001 08:52:41 +0100
+
+isco (1.103-2) unstable; urgency=low
+
+  * Debian packaging effort continues...
+
+ -- Salvador Pinto Abreu <spa@di.uevora.pt>  Tue,  5 Jun 2001 00:16:42 +0100
+
+isco (1.103-1) unstable; urgency=low
+
+  * Initial release.
+
+ -- Salvador Pinto Abreu <spa@di.uevora.pt>  Mon,  4 Jun 2001 18:21:01 +0100

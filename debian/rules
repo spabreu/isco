@@ -1,0 +1,59 @@
+#!/usr/bin/make -f
+
+DH_COMPAT=3
+
+package=isco
+
+build:
+	$(checkdir)
+	make -C src all PREFIX=/usr
+	touch build
+
+clean:
+	$(checkdir)
+	-rm -f build
+	make -C src clean
+	make -C util/schema-parser clean
+	find -name VERSION | xargs -r rm -f
+	dh_clean
+
+binary-indep: checkroot build
+	$(checkdir)
+	-rm -rf debian/tmp
+
+binary-arch: checkroot build
+	$(checkdir)
+	-rm -rf debian/tmp
+	install -d debian/tmp
+	cd debian/tmp && install -d `cat ../dirs`
+	make -C src install PREFIX=../debian/tmp/usr SUBDIRS=""
+	make -C util/schema-parser install PREFIX=../../debian/tmp/usr
+	dh_installdocs COPYRIGHT RELEASE TODO
+	dh_installchangelogs ChangeLog
+	install -m 644 debian/dhelp debian/tmp/usr/share/doc/$(package)/.dhelp
+	install -m 644 debian/dwww-index \
+		debian/tmp/usr/share/doc/$(package)/.dwww-index
+	install -m 644 debian/manpage debian/tmp/usr/share/man/man1/isco.1
+	dh_compress		#should be fixed
+	dh_installdeb
+	dh_shlibdeps
+	dh_md5sums
+	dh_gencontrol
+	dh_builddeb
+
+define checkdir
+	test -f debian/rules
+endef
+
+# Below here is fairly generic really
+
+binary: binary-indep binary-arch
+
+source diff:
+	@echo >&2 'source and diff are obsolete - use dpkg-source -b'; false
+
+checkroot:
+	$(checkdir)
+	test root = "`whoami`"
+
+.PHONY: binary binary-arch binary-indep clean checkroot

@@ -1,0 +1,117 @@
+# $Id$
+
+# -----------------------------------------------------------------------------
+#  ISCO is Copyright (C) 1998-2001 Salvador Abreu
+#  
+#     This program is free software; you can redistribute it and/or
+#     modify it under the terms of the GNU General Public License as
+#     published by the Free Software Foundation; either version 2, or
+#     (at your option) any later version.
+#  
+#     This program is distributed in the hope that it will be useful,
+#     but WITHOUT ANY WARRANTY; without even the implied warranty of
+#     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+#     General Public License for more details.
+#  
+#     You should have received a copy of the GNU General Public License
+#     along with this program; if not, write to the Free Software
+#     Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
+#     02111-1307, USA.
+#  
+#  On Debian GNU/Linux systems, the complete text of the GNU General
+#  Public License can be found in `/usr/share/common-licenses/GPL'.
+# -----------------------------------------------------------------------------
+
+CPATH = $(CLASSPATH):/usr/share/CUP:.
+
+JAVA   = java
+JAVAC  = javac
+JFLAGS = -g
+
+CUP    = cup
+JLEX   = jlex
+
+JFILES = sym.java \
+	$(subst .cup,.java,$(wildcard *.cup)) \
+	$(subst .lex,.java,$(wildcard *.lex))
+CLASSFILES = Main.class $(subst .java,.class,$(JFILES))
+
+PROGNAME = sql2isco
+
+PREFIX = /usr/local
+LIBDIR = $(PREFIX)/lib/isco/$(PROGNAME)
+BINDIR = $(PREFIX)/bin
+
+%.class: %.java
+	CLASSPATH=$(CPATH) $(JAVAC) $(JFLAGS) $<
+
+%.java: %.cup
+	$(CUP) -parser $(subst .cup,,$<) < $<
+
+%.java: %.lex
+	$(JLEX) $<
+	@rm -f $@
+	@mv $<.java $@
+
+%.stack: %.sql all
+	CLASSPATH=$(CPATH) $(JAVA) Main $* <$< >$@
+
+%.pl: %.stack
+	stack-to-isco < $< > $@
+
+all: $(JFILES) $(CLASSFILES) stack-to-isco $(PROGNAME)
+
+install: all
+	mkdir -p $(LIBDIR)
+	install -c -m 444 *.class $(LIBDIR)
+	install -c -m 555 stack-to-isco $(LIBDIR)
+	install -c -m 555 $(PROGNAME) $(BINDIR)
+
+$(PROGNAME): $(PROGNAME).sh
+	sed -e 's;@LIBDIR@;'$(LIBDIR)';g' < $< > $@
+	chmod a+rx $@
+
+run: all
+	CLASSPATH=$(CPATH) $(JAVA) Main
+
+
+stack-to-isco: stack-to-isco.pl
+	gplc --no-redef-error --no-top-level -o $@ $<
+
+sym.java: $(subst .cup,.java,$(wildcard *.cup))
+
+clean:
+	rm -f $(JFILES) $(PROGNAME) stack-to-isco
+	find -name \*.class | xargs rm -f
+	find -name \*~ -o -name \#* | xargs rm -f
+
+# $Log$
+# Revision 1.1  2003/01/06 14:27:12  spa
+# Initial revision
+#
+# Revision 1.1.1.1  2002/11/23 01:50:02  spa
+# Created module
+#
+# Revision 1.6  2001/04/30 22:43:55  spa
+# no -depends for javac.
+#
+# Revision 1.5  2001/04/30 13:06:17  spa
+# DESTDIR now LIBDIR.  Changed location as well.
+#
+# Revision 1.4  2001/04/29 22:08:36  spa
+# Fix "make clean".
+#
+# Revision 1.3  2001/04/29 22:07:57  spa
+# Now installs as program "sql2isco".
+#
+# Revision 1.2  2001/04/19 12:55:27  spa
+# Copyright.
+# Various fixes.
+#
+# Revision 1.1  2001/04/12 16:34:05  spa
+# *** empty log message ***
+#
+
+# Local Variables:
+# mode: font-lock
+# End:

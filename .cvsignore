@@ -1,0 +1,8 @@
+*.log
+*.o
+*~
+iscoc
+isco-shell
+configure.*
+auto*
+Makefile

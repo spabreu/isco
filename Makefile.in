@@ -1,0 +1,194 @@
+# $Id$
+
+# -----------------------------------------------------------------------------
+#  ISCO is Copyright (C) 1998-2001 Salvador Abreu
+#  
+#     This program is free software; you can redistribute it and/or
+#     modify it under the terms of the GNU General Public License as
+#     published by the Free Software Foundation; either version 2, or
+#     (at your option) any later version.
+#  
+#     This program is distributed in the hope that it will be useful,
+#     but WITHOUT ANY WARRANTY; without even the implied warranty of
+#     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+#     General Public License for more details.
+#  
+#     You should have received a copy of the GNU General Public License
+#     along with this program; if not, write to the Free Software
+#     Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
+#     02111-1307, USA.
+#  
+#  On Debian GNU/Linux systems, the complete text of the GNU General
+#  Public License can be found in `/usr/share/common-licenses/GPL'.
+# -----------------------------------------------------------------------------
+
+SHELL = /bin/bash
+
+GPLC = @GPLC@
+PROLOG = @GPROLOG@
+INSTALL = @INSTALL@
+
+PROG = isco
+
+LOADER = $(PROG)
+COMPILER = $(PROG)c
+PROGSHELL = $(PROG)-shell
+
+PREFIX = @prefix@
+LIBDIR = $(PREFIX)/lib/$(PROG)
+
+SUBDIRS = util/schema-parser util/scripts
+
+DB = \
+	odbc/unixODBC_c.o odbc/unixODBC.pl \
+	postgres/pl-pq.o postgres/pl-pq-prolog.pl
+LIBDB = -L -lodbc -L -lpq
+
+all: $(COMPILER) $(PROGSHELL) $(OBJECTS)
+	for DIR in $(SUBDIRS); do $(MAKE) -C $$DIR $@; done
+
+install: $(COMPILER) $(PROGSHELL) $(OBJECTS)
+	[ -d $(DESTDIR) ] || mkdir -p $(DESTDIR)
+	$(INSTALL) -c -m 555 $(COMPILER) $(DESTDIR)
+	$(INSTALL) -c -m 555 $(PROGSHELL) $(DESTDIR)
+	[ -d $(LIBDIR) ] || mkdir -p $(LIBDIR)
+	$(INSTALL) -c -m 444 ops.pl $(LIBDIR)
+	$(INSTALL) -c -m 444 $(OBJECTS) $(LIBDIR)
+	for DIR in $$SUBDIRS; do $(MAKE) -C $$DIR $@; done
+
+clean:
+	rm -f *~ \#* *.o $(COMPILER) $(PROGSHELL)
+	for DIR in $(SUBDIRS); do $(MAKE) -C $$DIR $@; done
+
+$(COMPILER): $(ISCOC_OBJECTS) $(DB)
+	$(GPLC) -o $@ \
+		$(ISCOC_OBJECTS) \
+		$(ISCOC_FLAGS) \
+		$(DB) $(LIBDB)
+
+$(PROGSHELL): $(SHELL_OBJECTS) $(DB)
+	$(GPLC) -o $@ \
+		$(SHELL_OBJECTS) \
+		$(SHELL_FLAGS) \
+		$(DB) $(LIBDB)
+
+php-%: %.o $(PHP_OBJECTS) $(DB)
+	$(GPLC) -o $@ \
+		$< \
+		$(PHP_OBJECTS) \
+		$(PHP_FLAGS) \
+		$(DB) $(LIBDB)
+
+odbc/unixODBC_c.o: odbc/unixODBC_c.c
+	make -C odbc unixODBC_c.o
+
+postgres/pl-pq.o: postgres/pl-pq.c
+	make -C postgres pl-pq.o
+
+odbc/.timestamp::
+	$(MAKE) -C odbc all
+
+top-level.o: top-level.pl \
+	$(shell grep '^:- *include' top-level.pl | cut -d\' -f2 | \
+		awk '{printf "%s.pl\n", $$1}') \
+	$(shell grep '^:- *include' code-gen.pl | cut -d\' -f2 | \
+		awk '{printf "%s.pl\n", $$1}')
+
+isco_lib_dir.pl::
+	echo "isco_lib_directory('$(subst debian/tmp,,$(LIBDIR))')." > $@
+
+%.o:: %.pl
+	$(GPLC) --no-redef-error -c $<
+
+%.pl:: % $(COMPILER) $(wildcard %/*.isco)
+	@make -s $(COMPILER)
+	@echo -n "$@: "
+	@$(COMPILER) --compile $(subst .pl,,$@) > $@.new
+	@if ! cmp --quiet $@ $@.new; then \
+	  [ -f $@ ] && mv -f $@ $@.old; \
+	  mv -f $@.new $@; \
+	  echo new file generated.; \
+	else \
+	  rm -f $@.new; \
+	  touch $@; \
+	  echo file unchanged.; \
+	fi
+
+%.sql: % $(COMPILER) $(wildcard %/*.isco)
+	@make -s $(COMPILER)
+	@echo -n "$@: "
+	@$(COMPILER) --sql $(subst .sql,,$@) > $@.new
+	@if ! cmp --quiet $@ $@.new; then \
+	  [ -f $@ ] && mv -f $@ $@.old; \
+	  mv -f $@.new $@; \
+	  echo new file generated.; \
+	else \
+	  rm -f $@.new; \
+	  touch $@; \
+	  echo file unchanged.; \
+	fi
+
+
+# $Log$
+# Revision 1.1  2003/01/06 14:27:05  spa
+# Initial revision
+#
+# Revision 1.18  2001/11/29 22:01:30  spa
+# .pl to .o compiles now require "--no-redef-error" flag.
+#
+# Revision 1.17  2001/08/23 23:46:11  spa
+# Now include native postgres stuff.
+#
+# Revision 1.16  2001/06/21 18:31:30  spa
+# Explicitly create odbc/unixODBC_c.o.
+#
+# Revision 1.15  2001/06/12 19:03:19  spa
+# Added PiLLoW support.
+#
+# Revision 1.14  2001/06/12 09:13:34  spa
+# Add isco_lib_dir.
+# Do not include php-extension in SUBDIRS (leave it up to the Debian packaging.)
+#
+# Revision 1.13  2001/05/17 23:07:10  spa
+# More dependencies for top-level.o.
+#
+# Revision 1.12  2001/05/15 09:22:49  spa
+# Pois...
+#
+# Revision 1.11  2001/05/10 00:45:29  spa
+# Fix dependencies.
+#
+# Revision 1.10  2001/05/09 11:11:43  spa
+# Build stand-alone executables for PHP.
+#
+# Revision 1.9  2001/05/03 13:41:09  spa
+# Now include ctype.pl.
+#
+# Revision 1.8  2001/05/02 18:02:39  spa
+# Depends for odbc build.
+#
+# Revision 1.7  2001/04/30 23:09:46  spa
+# Integrate odbc stuff into main Makefile.
+#
+# Revision 1.6  2001/04/30 22:35:07  spa
+# "clean" target.
+# "all", "install" and "clean" targets now look at $(SUBDIRS).
+# terminal rules for regular compilation processes.
+#
+# Revision 1.5  2001/04/30 22:27:58  spa
+# Implicit rule for .pl -> .o compilation.
+#
+# Revision 1.4  2001/04/30 22:26:52  spa
+# New "isco-shell" target.
+# Installation into /usr/local/lib/isco directory.
+#
+# Revision 1.3  2001/04/29 22:14:55  spa
+# new "install" target.
+#
+# Revision 1.2  2001/04/29 07:37:36  spa
+# Cleaned up previous SIIUE garbage.
+#
+
+# Local variables:
+# mode: font-lock
+# End:

@@ -1,0 +1,19 @@
+Source: isco
+Section: devel
+Priority: optional
+Maintainer: Salvador Abreu <spa@di.uevora.pt>
+Build-Depends: gprolog-cx, debhelper, imagemagick, php4-dev, unixodbc-dev
+Standards-Version: 3.1.1
+
+Package: isco
+Architecture: i386
+Depends: ${shlibs:Depends},
+ gprolog-cx, php4,
+ java-compiler, java-virtual-machine, cup (>=0.10k), jlex (>=1.2.5)
+Conflicts: 
+Description: ISCO Information System construction language.
+ ISCO is an Information System construction language developed at Universidade
+ de Évora.  It is built on top of GNU Prolog and uses UnixODBC and other
+ back-ends to access persistent data.
+ .
+ Page: http://dev.si.uevora.pt/isco/

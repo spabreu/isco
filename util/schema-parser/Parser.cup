@@ -1,0 +1,339 @@
+// $Id$
+
+// ----------------------------------------------------------------------------
+//  ISCO is Copyright (C) 1998-2001 Salvador Abreu
+//  
+//     This program is free software; you can redistribute it and/or
+//     modify it under the terms of the GNU General Public License as
+//     published by the Free Software Foundation; either version 2, or
+//     (at your option) any later version.
+//  
+//     This program is distributed in the hope that it will be useful,
+//     but WITHOUT ANY WARRANTY; without even the implied warranty of
+//     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+//     General Public License for more details.
+//  
+//     You should have received a copy of the GNU General Public License
+//     along with this program; if not, write to the Free Software
+//     Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
+//     02111-1307, USA.
+//  
+//  On Debian GNU/Linux systems, the complete text of the GNU General
+//  Public License can be found in `/usr/share/common-licenses/GPL'.
+// ----------------------------------------------------------------------------
+
+import java_cup.runtime.*;
+import java.lang.String;
+
+parser code {:
+  public static Scanner theScanner;
+  public static String  unit;
+
+  Parser (Scanner s, String u) {		// Constructor
+      this ();
+      theScanner = s;
+      unit       = u;
+  }
+
+  public static void pop (String to_pop) { // pop something from the stack
+      System.out.print ("[" + to_pop + "|X] -> [X].\n");
+  }
+
+  public static void push (String to_push) { // push something onto the stack
+      System.out.print ("X -> [" + to_push + "|X].\n");
+  }
+
+  public static void pp (String to_pop, String to_push) { // pop/push
+      System.out.print ("[" + to_pop + "|X] -> [" + to_push + "|X].\n");
+  }
+
+  public static void px (String to_pop, String out) { // result
+      System.out.print ("[" + to_pop + "|X] -> [X] ; " + out + ".\n");
+  }
+:};
+
+scan with {:
+  return theScanner.nextToken ();
+:};
+
+terminal SELECT;
+terminal CREATE;
+terminal TABLE, INHERITS, DEFAULT;
+terminal INDEX, UNIQUE, USING;
+terminal GRANT, REVOKE, PUBLIC, ALL, ON, FROM, TO;
+terminal SEQUENCE;
+terminal START, INCREMENT, MAXVALUE, MINVALUE, CACHE, CYCLE;
+terminal CONSTRAINT, CHECK, PRIMARY, FOREIGN, KEY, REFERENCES;
+terminal FUNCTION, RETURNS, LANGUAGE, PROCEDURAL, TRUSTED,
+	 HANDLER, LANCOMPILER, AS;
+terminal INT4, INT2, FLOAT4, FLOAT8, BOOL, DATE, DATETIME, TIMESTAMP,
+	 NUMBER, TEXT, VARCHAR, CHARACTER, VARYING, OPAQUE, NUMERIC,
+	 DOUBLE, PRECISION, TIME, ZONE;
+
+terminal OREL, OPLUS, OMINUS, UMINUS, OAST, OSLASH, AND, OR, NOT, NULL;
+terminal LPAR, RPAR, COMMA, SEMI;
+terminal BY, WITH;
+
+terminal String  STRING;
+terminal Integer NUMLIT;
+terminal String  ID;
+
+non terminal defs, def;
+non terminal
+	create_table_def,
+	create_sequence_def,
+	create_index_def,
+	select_nextval_def,
+	create_function_def,
+	create_language_def,
+	access_def;
+
+non terminal String identifier;
+non terminal String type, field;
+non terminal constraint;
+non terminal expression, expression_list, exps, idpair_list, types, type_list;
+non terminal id_list, field_list, string_list;
+non terminal empty_fields, fields, field_opts, field_opt;
+
+non terminal sequence_opts, sequence_opt, opt_with, opt_by;
+non terminal access_right, user, unique, trusted;
+
+
+precedence left SEMI, COMMA;
+precedence left OR;
+precedence left AND;
+precedence left OREL;
+precedence left OPLUS, OMINUS;
+precedence left OAST, OSLASH;
+precedence left UMINUS;
+
+start with defs;
+
+
+defs ::= defs def
+       | def
+       ;
+
+def ::= create_table_def
+      | create_sequence_def
+      | select_nextval_def
+      | access_def
+      | create_index_def
+      | create_function_def
+      | create_language_def
+      ;
+
+
+// -- Definitions -------------------------------------------------------------
+
+create_table_def ::=
+        CREATE TABLE identifier:id LPAR field_list RPAR SEMI
+	{: Parser.px ("FL", "class("+id+
+		               ",external("+Parser.unit+","+id+"),FL)"); :}
+      | CREATE TABLE identifier:id LPAR field_list RPAR
+		INHERITS LPAR identifier:sc RPAR SEMI
+	{: Parser.px ("FL", "class("+id+":"+sc+
+		               ",external("+Parser.unit+","+id+"),FL)"); :}
+      ;
+
+create_sequence_def ::= CREATE SEQUENCE identifier sequence_opts SEMI ;
+
+select_nextval_def ::= SELECT expression SEMI ;
+
+access_def ::= REVOKE access_right ON identifier FROM user SEMI
+	     | GRANT  access_right ON identifier TO user SEMI
+	     ;
+
+create_index_def ::=
+	  CREATE unique INDEX identifier ON identifier
+		USING ID LPAR idpair_list RPAR SEMI
+	| CREATE unique INDEX identifier ON identifier
+		USING ID LPAR type_list RPAR SEMI
+	;
+
+create_function_def ::=
+	CREATE FUNCTION identifier LPAR type_list RPAR
+		RETURNS type AS string_list LANGUAGE STRING SEMI
+	;
+
+create_language_def ::=
+	CREATE trusted PROCEDURAL LANGUAGE identifier
+		HANDLER identifier LANCOMPILER STRING SEMI
+	;
+
+
+// -- Utilities ---------------------------------------------------------------
+
+identifier ::= ID:id {: RESULT = id; :} | STRING:s {: RESULT = s; :} ;
+
+idpair_list ::= idpair_list COMMA identifier identifier
+	      | identifier identifier
+	      ;
+
+id_list ::= id_list COMMA identifier
+	  | identifier
+	  ;
+
+type_list ::= types | ;
+types ::= types COMMA type | type ;
+
+expression ::=
+	  NUMLIT
+	| STRING
+	| ID
+	| NOT expression		%prec UMINUS
+	| expression AND expression
+	| expression OR expression
+	| expression OREL expression
+	| OMINUS expression		%prec UMINUS
+	| expression OPLUS expression
+	| expression OMINUS expression
+	| expression OAST expression
+	| expression OSLASH expression
+	| LPAR expression RPAR
+	| ID LPAR expression_list RPAR
+	;
+
+expression_list ::= exps | ;
+
+exps ::= exps COMMA expression | expression ;
+
+string_list ::= string_list COMMA STRING | STRING ;
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+field_list ::= fields | empty_fields ;
+
+empty_fields ::= {: Parser.push ("[]"); :} ;
+
+fields ::= field:f COMMA fields  {: Parser.pp ("Fs", "["+f+"|Fs]"); :}
+	 | field:f               {: Parser.push ("["+f+"]"); :}
+	 | constraint COMMA fields
+	 | constraint            {: Parser.push ("[]"); :}
+	 ;
+
+field ::= identifier:id type:t field_opts:o {: RESULT = id+":"+t; :} ;
+
+type ::= INT4					{: RESULT = "int"; :}
+       | INT2					{: RESULT = "int"; :}
+       | FLOAT4					{: RESULT = "float"; :}
+       | FLOAT8					{: RESULT = "float"; :}
+       | DOUBLE PRECISION			{: RESULT = "float"; :}
+       | NUMERIC				{: RESULT = "int"; :}
+       | NUMBER					{: RESULT = "int"; :}
+       | NUMBER LPAR NUMLIT RPAR		{: RESULT = "int"; :}
+       | BOOL					{: RESULT = "bool"; :}
+       | DATE					{: RESULT = "dt"; :}
+       | DATETIME				{: RESULT = "dt"; :}
+       | TIMESTAMP				{: RESULT = "dt"; :}
+       | TIMESTAMP WITH TIME ZONE		{: RESULT = "dt"; :}
+       | TIME					{: RESULT = "dt"; :}
+       | TIME WITH TIME ZONE			{: RESULT = "dt"; :}
+       | TEXT					{: RESULT = "text"; :}
+       | VARCHAR LPAR NUMLIT RPAR		{: RESULT = "text"; :}
+       | CHARACTER				{: RESULT = "text"; :}
+       | CHARACTER LPAR NUMLIT RPAR		{: RESULT = "text"; :}
+       | CHARACTER VARYING LPAR NUMLIT RPAR	{: RESULT = "text"; :}
+       | OPAQUE                                 {: RESULT = "opaque"; :}
+       ;
+
+field_opts ::= field_opts field_opt
+	     | 
+	     ;
+
+field_opt ::= DEFAULT expression
+	    | NOT NULL
+	    | PRIMARY KEY
+	    | UNIQUE
+	    ;
+
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+constraint ::= CONSTRAINT identifier CHECK LPAR expression RPAR
+	     | CONSTRAINT identifier PRIMARY KEY LPAR id_list RPAR
+	     | CONSTRAINT identifier FOREIGN KEY LPAR identifier RPAR
+				REFERENCES identifier LPAR identifier RPAR
+	     | PRIMARY KEY LPAR id_list RPAR
+	     ;
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+sequence_opts ::= sequence_opts sequence_opt
+		| 
+		;
+
+sequence_opt ::= START opt_with NUMLIT
+	       | INCREMENT opt_by NUMLIT
+	       | MAXVALUE NUMLIT
+	       | MINVALUE NUMLIT
+	       | CACHE NUMLIT
+	       | CYCLE
+	       ;
+
+opt_with ::= WITH | ;
+opt_by   ::= BY | ;
+
+access_right ::= ALL | SELECT ;
+
+user ::= PUBLIC | identifier ;
+
+unique ::= UNIQUE | ;
+
+trusted ::= TRUSTED | ;
+
+// $Log$
+// Revision 1.1  2003/01/06 14:27:12  spa
+// Initial revision
+//
+// Revision 1.12  2001/06/12 17:25:06  spa
+// "default" clause in field options does NOT require parens.
+//
+// Revision 1.11  2001/06/05 13:07:31  spa
+// Alternate syntax for PRIMARY KEY constraint (unnamed).
+//
+// Revision 1.10  2001/05/08 12:59:47  spa
+// Unary operators (NOT, -).
+// DATE type re-introduced.
+//
+// Revision 1.9  2001/05/07 14:42:51  spa
+// Deal with some more types.
+//
+// Revision 1.8  2001/05/04 15:29:27  spa
+// Add WITH and BY noise words to create sequence.
+// NUMBER (numeric literal) is now NUMLIT.
+// Add NUMBER and VARCHAR types.
+// PRIMARY KEY constraints can take an identifier list.
+// Add FOREIGN KEY constraints.
+//
+// Revision 1.7  2001/05/04 12:23:41  spa
+// More field options.
+// More constraint modalities.
+//
+// Revision 1.6  2001/05/03 23:51:57  spa
+// Extra parameter: unit/external access identifier.
+// Deal with function declarations.
+// Deal with procedural language declarations.
+// Deal with relational and logical expressions.
+// New end-of-field-list can be found in the constraints section.
+//
+// Revision 1.5  2001/05/03 17:23:27  spa
+// Terminal declaration for "constraint" was missing.
+//
+// Revision 1.4  2001/05/03 15:28:01  spa
+// Handle constraints.
+//
+// Revision 1.3  2001/04/19 12:55:48  spa
+// Copyright.
+//
+// Revision 1.2  2001/04/11 13:17:15  spa
+// Produce stack-like notation for use by the "stack-to-isco" Prolog program.
+//
+// Revision 1.1  2001/04/10 18:06:18  spa
+// Initial version.
+//
+
+// Local variables:
+// mode: java
+// mode: font-lock
+// End:

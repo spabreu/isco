@@ -1,0 +1,177 @@
+# $Id$
+
+# -----------------------------------------------------------------------------
+#  ISCO is Copyright (C) 1998-2003 Salvador Abreu
+#  
+#     This program is free software; you can redistribute it and/or
+#     modify it under the terms of the GNU General Public License as
+#     published by the Free Software Foundation; either version 2, or
+#     (at your option) any later version.
+#  
+#     This program is distributed in the hope that it will be useful,
+#     but WITHOUT ANY WARRANTY; without even the implied warranty of
+#     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+#     General Public License for more details.
+#  
+#     You should have received a copy of the GNU General Public License
+#     along with this program; if not, write to the Free Software
+#     Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
+#     02111-1307, USA.
+#  
+#  On Debian GNU/Linux systems, the complete text of the GNU General
+#  Public License can be found in `/usr/share/common-licenses/GPL'.
+# -----------------------------------------------------------------------------
+
+SHELL = /bin/bash
+
+GPLC = @GPLC@
+PROLOG = @GPROLOG@
+INSTALL = @INSTALL@
+
+PROG = isco
+
+LOADER = $(PROG)
+COMPILER = $(PROG)c
+PROGSHELL = $(PROG)-shell
+
+PREFIX = @prefix@
+LIBDIR = $(PREFIX)/lib/$(PROG)
+
+PLX = $(PREFIX)/$(PROLOG)/ext
+
+PLFILES = \
+	revision.pl \
+	apt.pl \
+	cmdline.pl \
+	code-gen-directives.pl \
+	code-gen-schema.pl \
+	code-gen-prolog.pl \
+	code-gen-sql.pl \
+	empty-classes.pl \
+	ops.pl \
+	parser.pl \
+	runtime.pl \
+	symtab.pl \
+	top-level.pl \
+	ctype.pl \
+	php-top.pl \
+	isco_lib_dir.pl
+
+ISCOC_FLAGS = --no-debugger --no-top-level
+ISCOC_OBJECTS = \
+	revision.o \
+	top-level.o \
+	apt.o \
+	parser.o \
+	runtime.o \
+	symtab.o \
+	ctype.o \
+	empty-classes.o \
+	cmdline.o \
+	code-gen-directives.o \
+	code-gen-schema.o \
+	code-gen-prolog.o \
+	code-gen-sql.o \
+	isco_lib_dir.o
+
+
+SHELL_FLAGS = 
+SHELL_OBJECTS = \
+	revision.o \
+	apt.o \
+	top-level.o \
+	ctype.o \
+	empty-classes.o \
+	copyright.o \
+	isco_lib_dir.o
+
+LIB_OBJECTS = \
+	runtime.o \
+	ctype.o \
+	ops.pl \
+	backend-pg.o \
+	backend-odbc.o
+
+OBJECTS = \
+	$(ISCOC_OBJECTS) $(SHELL_OBJECTS) $(PHP_OBJECTS) $(LIB_OBJECTS)
+
+SUBDIRS = schema-parser odbc postgres pillow
+
+DB = \
+	$(PLX)/postgresql/interface.pl \
+	$(PLX)/postgresql/module.o \
+	$(PLX)/odbc/interface.pl \
+	$(PLX)/odbc/module.o
+LIBDB = -L -lodbc -L -lpq
+
+all: $(COMPILER) $(PROGSHELL) $(OBJECTS)
+
+install: $(COMPILER) $(PROGSHELL) $(OBJECTS) $(LIB_OBJECTS)
+	[ -d $(DESTDIR) ] || mkdir -p $(DESTDIR)
+	$(INSTALL) -c -m 555 $(COMPILER) $(DESTDIR)
+	$(INSTALL) -c -m 555 $(PROGSHELL) $(DESTDIR)
+	[ -d $(LIBDIR) ] || mkdir -p $(LIBDIR)
+	$(INSTALL) -c -m 444 $(LIB_OBJECTS) $(LIBDIR)
+	for DIR in $$SUBDIRS; do $(MAKE) -C $$DIR $@; done
+
+clean:
+	rm -f *~ \#* *.o $(COMPILER) $(PROGSHELL) revision.pl
+
+$(COMPILER): $(ISCOC_OBJECTS) $(DB)
+	$(GPLC) -o $@ \
+		$(ISCOC_OBJECTS) \
+		$(ISCOC_FLAGS) \
+		$(DB) $(LIBDB)
+
+$(PROGSHELL): $(SHELL_OBJECTS) $(DB)
+	$(GPLC) -o $@ \
+		$(SHELL_OBJECTS) \
+		$(SHELL_FLAGS) \
+		$(DB) $(LIBDB)
+
+isco_lib_dir.pl::
+	echo "isco_lib_directory('$(subst ../debian/tmp,,$(LIBDIR))')." > $@
+
+revision.pl: revision.pl.in
+	sed -e "s;@REVISION@;`head -1 ../debian/changelog | sed -e 's;.*(;;' -e 's;).*;;'`;" < $< > $@
+
+%.o:: %.pl
+	$(GPLC) --no-redef-error -c $<
+
+%.pl:: % $(COMPILER) $(wildcard %/*.isco)
+	@make -s $(COMPILER)
+	@echo -n "$@: "
+	@$(COMPILER) --compile $(subst .pl,,$@) > $@.new
+	@if ! cmp --quiet $@ $@.new; then \
+	  [ -f $@ ] && mv -f $@ $@.old; \
+	  mv -f $@.new $@; \
+	  echo new file generated.; \
+	else \
+	  rm -f $@.new; \
+	  touch $@; \
+	  echo file unchanged.; \
+	fi
+
+%.sql: % $(COMPILER) $(wildcard %/*.isco)
+	@make -s $(COMPILER)
+	@echo -n "$@: "
+	@$(COMPILER) --sql $(subst .sql,,$@) > $@.new
+	@if ! cmp --quiet $@ $@.new; then \
+	  [ -f $@ ] && mv -f $@ $@.old; \
+	  mv -f $@.new $@; \
+	  echo new file generated.; \
+	else \
+	  rm -f $@.new; \
+	  touch $@; \
+	  echo file unchanged.; \
+	fi
+
+
+# $Log$
+# Revision 1.1  2003/01/06 14:27:16  spa
+# Initial revision
+#
+
+# Local variables:
+# mode: font-lock
+# End:

@@ -1,0 +1,275 @@
+% $Id$
+
+% -----------------------------------------------------------------------------
+%  ISCO is Copyright (C) 1998-2001 Salvador Abreu
+%  
+%     This program is free software; you can redistribute it and/or
+%     modify it under the terms of the GNU General Public License as
+%     published by the Free Software Foundation; either version 2, or
+%     (at your option) any later version.
+%  
+%     This program is distributed in the hope that it will be useful,
+%     but WITHOUT ANY WARRANTY; without even the implied warranty of
+%     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+%     General Public License for more details.
+%  
+%     You should have received a copy of the GNU General Public License
+%     along with this program; if not, write to the Free Software
+%     Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
+%     02111-1307, USA.
+%  
+%  On Debian GNU/Linux systems, the complete text of the GNU General
+%  Public License can be found in `/usr/share/common-licenses/GPL'.
+% -----------------------------------------------------------------------------
+
+\section{The ISCO language}
+\label{sec:isco-language}
+
+An ISCO program is a regular Prolog program augmented with a syntax for
+describing:
+\begin{itemize}
+\item ISCO predicates.
+\item ISCO goals.
+\end{itemize}
+
+\subsection{ISCO predicate syntax}
+\label{sec:pred-syntax}
+
+An ISCO predicate is understood to be similar to a Prolog predicate.  However,
+its actual implementation may differ because some predicates may rely upon an
+external storage mechanism.  Syntactically, ISCO predicates are different from
+regular predicates because:
+\begin{itemize}
+\item Arguments are typed.
+\item There may be constraints that specific arguments are automatically
+  required to satisfy.
+\item There's a built-in notion of update for ISCO predicates.
+\end{itemize}
+
+The syntax for an ISCO program will be given incrementally.  We start with
+figure~\ref{fig:syntax:program} in which a program is shown to be a sequence
+of ISCO definitions, interspersed with Prolog code (either clauses or
+directives).  The notation used to express the ISCO syntax is the standard one
+for grammars, with the possibility to define ...
+
+
+\subsubsection{Programs and Definitions}
+\label{sec:syntax:programs-definitions}
+
+\begin{figure}[htb]
+  \centering
+  \begin{eqnarray*}
+    \mathsf{PROGRAM} & \rightarrow & \mathsf{DEF} \; \mathsf{PROGRAM} \\
+    & | & \mathsf{CLAUSE} \; \mathsf{PROGRAM} \\
+    & | & \mathsf{DIRECTIVE} \; \mathsf{PROGRAM} \\
+    & | & \varepsilon \\
+    \\
+    \mathsf{DEF} & \rightarrow & \mathsf{CLASS\_DEF} \;|\;
+    \mathsf{SEQUENCE\_DEF} \;|\; \mathsf{EXTERNAL\_DEF}
+  \end{eqnarray*}
+  \caption{ISCO program syntax}
+  \label{fig:syntax:program}
+\end{figure}
+In figure~\ref{fig:syntax:program} it can be seen that ISCO definitions
+(non-terminal \textsf{DEF}) may take on three forms:
+\begin{enumerate}
+\item A \emph{class} definition (\textsf{CLASS\_DEF}), which is further
+  described in figure~\ref{fig:syntax:class}.
+\item A \emph{sequence} definition (\textsf{SEQUENCE\_DEF}), which can be used
+  to implement global counters in an application, which is described in
+  figure~\ref{fig:syntax:sequence}.
+\item An \emph{external} declaration (\textsf{EXTERNAL\_DEF}) which provides
+  ISCO with the necessary information to access an external data source or
+  sink, such as an ODBC-driven database or an LDAP directory.  External
+  definitions are described in figure~\ref{fig:syntax:external}.
+\end{enumerate}
+
+\subsubsection{Class definitions}
+\label{sec:syntax:class-definitions}
+
+The syntax for class definitions is given in figure~\ref{fig:syntax:class}
+(see page~\pageref{fig:syntax:class}).
+\begin{figure}[htb]
+  \centering
+  \begin{eqnarray*}
+    \mathsf{CLASS\_DEF} & \rightarrow & \mathsf{HEAD} \; \mathsf{BODY} \;
+    \mathsf{REST} \\
+    \\
+    \mathsf{HEAD} & \rightarrow & \mathsf{sequence}(\textsf{CLASS\_ATTR}) \;
+    \keyword{class} \; \mathsf{CLASS\_NAME} \token{.} \\
+    & | & \mathsf{sequence}(\textsf{CLASS\_ATTR}) \; \keyword{class} \;
+    \mathsf{CLASS\_NAME} \token{:} \mathsf{SUPERCLASS\_NAME} \token{.} \\
+  \end{eqnarray*}
+  \caption{ISCO class definition syntax}
+  \label{fig:syntax:class}
+\end{figure}
+The \textsf{HEAD} production indicates how a class is introduced.  The
+sequence of \textsf{CLASS\_ATTR}s is optional and may be used to indicate
+certain attributes for the class being defined.  These are comma-separated
+terms and are enumerated in figure~\ref{fig:syntax:class-attr}, and may be
+summarized as follows:
+\begin{itemize}
+\item \textsf{static}.  A class with the \textsf{static} attribute may not
+  have new values appended to its set of solution tuples.  Typically such
+  classes will be directly implemented as compiled Prolog code.
+\item \textsf{mutable}.  A class with this attribute may be accessed in all
+  three modes (see~)  \TBD
+\item \textsf{external(ID, EXT\_ID)}.  This tells ISCO that the class being
+  declared is in fact stored as \textsf{EXT\_ID} in external database
+  \textsf{ID}.  \textsf{EXT\_ID} is a term to be interpreted in the external
+  database's context.  This mechanism allows for the reuse of existing
+  databases, avoiding name clashes without having to rename the relations.
+\item \textsf{computed}.  This indicates that the class being declared is
+  implemented as a set of \emph{rules}, ie.~as a regular Prolog predicate.
+  The rules themselves are expected to follow the class definition. (see~\TBD)
+\end{itemize}
+\begin{figure}[htb]
+  \centering
+  \begin{eqnarray*}
+    \mathsf{CLASS\_ATTR} & \rightarrow & \token{static} \;|\; \token{mutable}
+    \;|\; \token{computed} \;|\; \token{external}\token{(} \mathsf{ID}
+    \token{,} \mathsf{EXT\_ID} \token{)} \;|\; \varepsilon
+  \end{eqnarray*}
+  \caption{ISCO class attributes}
+  \label{fig:syntax:class-attr}
+\end{figure}
+
+\subsubsection{Class body}
+\label{sec:syntax:class-body}
+
+The class body syntax is given by figure~\ref{fig:syntax:class-body} (see
+page~\pageref{fig:syntax:class-body}) and is basically made up of a (possibly
+empty) sequence of field definitions.
+\begin{figure}[htb]
+  \centering
+  \begin{eqnarray*}
+    \mathsf{BODY} & \rightarrow & \mathsf{FIELD\_DEF} \\
+    & | & \mathsf{BODY} \; \mathsf{FIELD\_DEF} \\
+    & | & \varepsilon \\
+    \\
+    \mathsf{FIELD\_DEF} & \rightarrow & \keyword{field} \;
+    \mathsf{NAME} \token{:} \mathsf{TYPE} \token{.} \mathsf{FIELD\_ATTRS} \\
+    & | &  \keyword{field} \; \mathsf{FIELD\_NAME} \token{.}
+    \mathsf{FIELD\_ATTRS} \\
+    & | &  \keyword{field} \; \mathsf{NAME} \token{:} \mathsf{CLASS\_NAME}
+    \token{.} \mathsf{FIELD\_NAME} \token{.} \mathsf{FIELD\_ATTRS} \\
+  \end{eqnarray*}
+  \caption{ISCO class body definition syntax}
+  \label{fig:syntax:class-body}
+\end{figure}
+The body of a class may be empty, in which case it will have no fields (if it
+is a base class) or only the fields already in its superclass (if it inherits
+from another class).  The \textsf{FIELD\_NAME} symbol is a Prolog
+``identifier'' atom which uniquely identifies the field being defined, within
+the scope of its class and all of its superclasses.
+
+
+\subsubsection{Field declarations}
+\label{sec:syntax:field-declarations}
+
+Each field declaration can come in one of three forms:
+\begin{enumerate}
+\item The first form is for regular fields, which are typed at the time they
+  are declared.  Valid field types are discussed in \TBD
+\item The second form is for implicitly typed fields, i.e.~fields for which
+  the type will be inferred from its uses elsewhere in the program.
+\item The last form is for fields which are implicitly typed by constraining
+  them to take values only in the set of values given by some field in another
+  class.  In this case the type is inferred to be the same as that of the
+  target field.
+\end{enumerate}
+
+The \textsf{FIELD\_ATTRS} symbol stands for a possibly empty sequence of
+Prolog terms which describe attributes specific to the field which immediately
+precedes the attribute.  These attributes are taken from the set shown in
+figure~\ref{fig:syntax:field-attr}.
+\begin{figure}[htb]
+  \centering
+  \begin{eqnarray*}
+    \mathsf{FIELD\_ATTRS} & \rightarrow & \mathsf{FIELD\_ATTRS} \;
+    \mathsf{FIELD\_ATTR} \;|\; \varepsilon \\
+    \\
+    \mathsf{FIELD\_ATTR} & \rightarrow & \token{unique} \; \token{.} \\
+     & | & \token{not\_null} \; \token{.} \\
+     & | & \token{key} \; \token{.} \\
+     & | & \token{key} \; \mathsf{list}(\mathsf{FIELD\_NAME}) \; \token{.} \\
+     & | & \token{unique} \; \token{.} \\
+     & | & \token{domain} \; \mathsf{CLASS\_NAME} \token{.}
+    \mathsf{FIELD\_NAME} \token{.}
+  \end{eqnarray*}
+  \caption{ISCO field attribute definition syntax}
+  \label{fig:syntax:field-attr}
+\end{figure}
+
+\subsubsection{Remainder of a class declaration}
+\label{sec:rema-class-decl}
+
+Classes may be suffixed with attributes taken from the set specified by the
+\textsf{CLASS\_ATTR} production: this is simply an alternate syntax and adds
+nothing to the semantics.
+
+\textsf{computed} classes are expected to contain one or more \emph{rules},
+which come after the body of the class.  These rules are regular Prolog
+clauses, with the following differences:
+\begin{itemize}
+\item The clause head is always ``\texttt{rule :-}''.
+\item The clause body may access implicit head variables, which are named
+  after the fields in the class definition, rewritten in all-upper-case.
+\item ISCO predicate calls are subject to the preprocessing discussed in~\TBD
+\end{itemize}
+
+
+\subsubsection{Sequence declaration}
+\label{sec:sequence-declaration}
+
+One of the SQL features that is most useful in building applications is the
+\texttt{sequence} construction.  ISCO incorporates this concept with minimal
+impact on the language structure: sequences are declared in a syntactic form
+similar to that of regular classes and accessed through a pair of predicates
+which perform the sequence operations (fetch or set next value and inquire
+aboutr the current value.)
+
+\begin{figure}[htb]
+  \centering
+  \begin{eqnarray*}
+    \mathsf{SEQUENCE\_DEF} & \rightarrow &  \\
+  \end{eqnarray*}
+  \caption{ISCO sequence definition syntax}
+  \label{fig:syntax:sequence}
+\end{figure}
+
+\begin{figure}[htb]
+  \centering
+  \begin{eqnarray*}
+    \mathsf{EXTERNAL\_DEF} & \rightarrow &
+    \keyword{external}\token{(}\mathsf{ID}\token{,}
+    \mathsf{EXT\_DESCRIPTOR}\token{)} \token{.}
+  \end{eqnarray*}
+  \caption{ISCO external data source/sink definition syntax}
+  \label{fig:syntax:external}
+\end{figure}
+
+\begin{figure}[htb]
+  \centering
+  \begin{eqnarray*}
+    \mathsf{list}(X) & \rightarrow & \token{[} \; \mathsf{sequence}(X) \;
+    \token{]} \\
+    \mathsf{sequence}(X) & \rightarrow & \mathsf{sequence}(X, \token{,}) \;|\;
+    \varepsilon \\
+    \mathsf{sequence}(X, \emph{SEP}) & \rightarrow & X \;|\;
+    X \; \emph{SEP} \; \mathsf{sequence}(X, \emph{SEP})
+  \end{eqnarray*}
+  \caption{Utility syntax}
+  \label{fig:syntax:utility}
+\end{figure}
+
+\subsection{ISCO goal syntax}
+\label{sec:isco-goal-syntax}
+
+
+% Local variables:
+% mode: reftex
+% mode: font-lock
+% mode: auto-fill
+% TeX-master: "manual"
+% End:

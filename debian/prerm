@@ -1,0 +1,15 @@
+#!/bin/sh
+
+set -e
+
+PACKAGE=isco
+
+if test -f /usr/sbin/dhelp_parse; then
+  /usr/sbin/dhelp_parse -d /usr/share/doc/$PACKAGE
+fi
+
+if test "$1" = upgrade -o "$1" = remove; then
+  if test -L /usr/doc/$PACKAGE; then
+    rm -f /usr/doc/$PACKAGE
+  fi
+fi

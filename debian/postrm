@@ -1,0 +1,5 @@
+#!/bin/sh -e
+
+if test "$1" != "upgrade"; then
+  update-alternatives --remove isco /usr/bin/isco
+fi

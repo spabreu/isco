@@ -1,0 +1,26 @@
+#!/bin/sh
+
+set -e
+
+PACKAGE=isco
+
+if test "$1" != configure; then
+  exit 0
+fi
+
+update-alternatives \
+ --install /usr/bin/iscoc iscoc /usr/bin/iscoc 10 \
+ --slave /usr/bin/isco-shell isco-shell /usr/bin/isco-shell \
+ --slave /usr/bin/sql2isco sql2isco /usr/bin/sql2isco \
+ --slave /usr/bin/pillow pillow /usr/bin/pillow \
+ --slave /usr/bin/gprolog-odbc gprolog-odbc /usr/bin/gprolog-odbc \
+ --slave /usr/share/man/man1/isco.1.gz isco.1.gz /usr/share/man/man1/isco.1.gz
+
+if test -f /usr/sbin/dhelp_parse; then
+  /usr/sbin/dhelp_parse -a /usr/share/doc/$PACKAGE
+fi
+
+if test -d /usr/doc -a ! -e /usr/doc/$PACKAGE \
+    -a -d /usr/share/doc/$PACKAGE; then
+  ln -sf ../share/doc/$PACKAGE /usr/doc/$PACKAGE
+fi
