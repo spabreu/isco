@@ -28,6 +28,7 @@
 :- op(590, xfx, ':=').
 :- op(590, xf,  ':+').				% now unary suffix
 :- op(590, xf,  ':\\').				% now unary suffix
+:- op(590, xf,  '@:=').				% for update rules
 
 :- op(1100, xfx, 'class').			% greater than ','
 :- op(1100,  fx, 'class').
@@ -58,8 +59,11 @@
 
 
 % $Log$
-% Revision 1.1  2003/01/06 14:27:16  spa
-% Initial revision
+% Revision 1.2  2003/07/08 16:55:03  spa
+% New operator for "update" rules (@:=).
+%
+% Revision 1.1.1.1  2003/01/06 14:27:16  spa
+% Imported into CVS
 %
 % Revision 1.16  2001/08/24 18:16:37  spa
 % Take note of "index" attributes (class and field).
