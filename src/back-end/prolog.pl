@@ -176,10 +176,10 @@ isco_prolog_class_body(Vs, RNAME, HEAD, GOAL, CH, OC_VAR+MASK) :-
 	  isco_auto_inheritance(DBTYPE, DESCEND) -> true ; DESCEND='' ),
 	GOAL = (
 	  ( MASK = 0 ->
-	     format_to_codes(SQLin, 'select * from ~w~w', [RNAME, DESCEND])
+	     format_to_codes(SQLin, "select oid, * from ~w~w", [RNAME, DESCEND])
 	  ; isco_mask_to_var_list(HEAD, _, MASK, VL),
 	    isco_var_list_to_select(VL, SELf),
-	    format_to_codes(SQLin, 'select ~s from ~w~w', [SELf, RNAME, DESCEND]) ),
+	    format_to_codes(SQLin, "select oid, ~s from ~w~w", [SELf, RNAME, DESCEND]) ),
 	  G1 ),
 	isco_where_clause(Vs, CH, G1, G2, SQLin, SQLout),
 	G2 = (append(SQLout, OC_VAR, SQLfinal),
@@ -576,6 +576,9 @@ isco_prolog_sequence(NAME, ATTRs) :-
 % -----------------------------------------------------------------------------
 
 % $Log$
+% Revision 1.3  2003/01/19 08:28:38  spa
+% Code for 'select' now grabs OID as well.
+%
 % Revision 1.2  2003/01/17 14:48:09  spa
 % isco_prolog_code_insert_body/8: use strings instead of atoms.
 %
