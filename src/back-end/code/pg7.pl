@@ -19,6 +19,14 @@
 
 isco_prolog_class_body(Vs, CNAME, RNAME, HEAD, GOAL, CH, OC_VAR+MASK) :-
 	functor(HEAD,CNAME,_),
+	( isco_prolog_no_subclasses(CNAME) ->
+	    format_to_atom(RELNAME, "'~w'", [CNAME]),
+	    WHERE_PFX='where',
+	    TABLE_WHERE=''
+	;
+	    RELNAME='c.relname',
+	    WHERE_PFX='and',
+	    TABLE_WHERE=', pg_class c where c.oid=o.tableoid' ),
 	GOAL = (
 	  ( MASK = 0 -> NMASK = -1 ; NMASK=MASK ),
 	  MASK1 is NMASK /\ \6, % 6 is: 2 forced args (2^N-1)<<1
@@ -27,9 +35,9 @@ isco_prolog_class_body(Vs, CNAME, RNAME, HEAD, GOAL, CH, OC_VAR+MASK) :-
 	  isco_mask_to_var_list(HEAD, _, MASK1, VL1),
 	  reverse(VL1, VL1r),
 	  isco_var_list_to_select(VL1r, ", ", "", SELf),
-	  format_to_codes(SQLin, 'select o.oid, c.relname as instanceOf~s from "~w" o, pg_class c where c.oid=o.tableoid', [SELf, RNAME]),
+	  format_to_codes(SQLin, 'select o.oid, ~w as instanceOf~s from "~w" o~w', [RELNAME, SELf, RNAME, TABLE_WHERE]),
 	  G1 ),
-	isco_where_clause(Vs, CH, G1, G2, SQLin, SQLout),
+	isco_where_clause(WHERE_PFX, Vs, CH, G1, G2, SQLin, SQLout),
 	G2 = (append(SQLout, OC_VAR, SQLfinal),
 	      ( g_read(isco_debug_sql, 1) ->
 		  format('sql(~w): ~s~n', [CH, SQLfinal]) ; true ),
@@ -54,8 +62,8 @@ isco_prolog_class_body_fields([P=f(V,N,T)|VARs], GOAL, CH, SH, VL, MASK, CN) :-
 
 % -- SQL WHERE clause generation ----------------------------------------------
 
-isco_where_clause(Vs, C, Gin, Gout, SQLin, SQLout) :-
-	prolog([]) :> isco_where_clause(Vs, C, 'and', _, Gin, Gout, SQLin, SQLout).
+isco_where_clause(PFX, Vs, C, Gin, Gout, SQLin, SQLout) :-
+	prolog([]) :> isco_where_clause(Vs, C, PFX, _, Gin, Gout, SQLin, SQLout).
 
 
 isco_auto_inheritance.
