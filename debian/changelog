@@ -1,3 +1,33 @@
+isco (2.2-4) unstable; urgency=low
+
+  * (all of these changes affect runtime/runtime.pl)...
+  * new clause for isco_arg_list/3, which allows for positional argument
+    lists to be used in inserts, etc.  Requires new predicate
+    isco_positional_arg_list/4.  Raise exception on illegal arglist
+    length.
+  * properly format the "text" datatype when passed a string on the Prolog
+    side.
+  * "text" datatype now requires runtime conversion.
+  * added a valid expansion for REL@ARGS :\.
+  * isco_atomic/[1,2]: use isco_term_expansion/2 for the goal.
+  * allow empty argument list for RELNAME :\ (zaps *everything*).
+
+ -- Salvador Abreu <spa@debian.org>  Fri, 21 Mar 2003 09:05:17 +0000
+
+isco (2.2-3) unstable; urgency=low
+
+  * runtime/runtime.pl: isco_odbc_fd_format/3: fix interval syntax for
+    qualified queries. (closes: #21)
+
+ -- Salvador Abreu <spa@debian.org>  Tue, 18 Mar 2003 19:55:48 +0000
+
+isco (2.2-2) unstable; urgency=low
+
+  * runtime/runtime.pl: isco_odbc_format/4 generates "true" and "false"
+    for booleans, regardless of the back-end being used.  (closes: #20)
+
+ -- Salvador Abreu <spa@debian.org>  Tue, 18 Mar 2003 13:20:10 +0000
+
 isco (2.2-1) unstable; urgency=low
 
   * New release.
