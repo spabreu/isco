@@ -1,7 +1,7 @@
 % $Id$
 
 % -----------------------------------------------------------------------------
-%  ISCO is Copyright (C) 1998-2001 Salvador Abreu
+%  ISCO is Copyright (C) 1998-2003 Salvador Abreu
 %  
 %     This program is free software; you can redistribute it and/or
 %     modify it under the terms of the GNU General Public License as
@@ -317,16 +317,16 @@ isco_odbc_fd_format(V, N, VF) :-
 	fd_dom(V, VLIST),
 	format_to_codes(VLISTn, "~w", [VLIST]),
 	isco_odbc_list_to_tuple(VLISTn, VALUES),
-	format_to_codes(VF, "~w in ~s", [N, VALUES]).
+	format_to_codes(VF, '"~w" in ~s', [N, VALUES]).
 isco_odbc_fd_format(V, N, VF) :-
 	fd_max_integer(MAX), fd_max(V, MAX),
 	!,
 	fd_min(V, MIN),
-	format_to_codes(VF, "~w >= ~w", [N, MIN]).
+	format_to_codes(VF, '"~w" >= ~w', [N, MIN]).
 isco_odbc_fd_format(V, N, VF) :-
 	fd_max(V, MAX),
 	fd_min(V, MIN),
-	format_to_codes(VF, "~w >= ~w and o.~w <= ~w", [N, MIN, N, MAX]).
+	format_to_codes(VF, '"~w" >= ~w and o."~w" <= ~w', [N, MIN, N, MAX]).
 
 
 isco_odbc_list_to_tuple([], []).
@@ -355,7 +355,7 @@ isco_where_var(_, V, N, T, WP, 'and', WC, WCo) :-
 	fd_var(V), T=int,			% FD only for int type...
 	!,
 	isco_odbc_fd_format(V, N, VF),
-	format_to_codes(WCo, '~s ~w o."~s"', [WC, WP, VF]).
+	format_to_codes(WCo, '~s ~w o.~s', [WC, WP, VF]).
 isco_where_var(_, V, N, term, WP, 'and', WC, WCo) :- % special for terms...
 	nonvar(V), !,
 	copy_term(V, VC),
@@ -429,6 +429,7 @@ isco_order_tuple(A, NA, [O]) :- isco_order_by_item(A, NA, O), !.
 isco_order_tuple(A, A, []).
 
 
+isco_order_by_item(X, _, _) :- var(X), !, fail.
 isco_order_by_item(N=V <@, N=V, N=(desc)).
 isco_order_by_item(N=V >@, N=V, N=(asc)).
 isco_order_by_item(N=V desc, N=V, N=(desc)).	% allow alternate syntax
@@ -533,22 +534,23 @@ isco_tablename(CNAME, TNAME) :- isco_classtype(CNAME, external(_, TNAME)), !.
 
 % == Specialized "term_expansion/2" for ISCO predicates =======================
 
+isco_term_expansion(X, Y) :- isco_term_expansion(X, Y, _).
+
+isco_term_expansion(X, Y, yes) :- ite(X, Y), !.
+isco_term_expansion(X, X, no).
+
 % -- ISCO/Prolog update goal call ---------------------------------------------
 
-isco_term_expansion((RELNAME @ ARGS :\), GOAL) :- !,
-	atom(RELNAME),
-	isco_class(RELNAME, ARITYm1), ARITY is ARITYm1+1,
-	isco_order_tuple(ARGS, NARGS, ORDER),
-	atom_concat('isco_delete__', RELNAME, PREDNAME),
-	functor(GOAL, PREDNAME, ARITY),
-	isco_arg_list(NARGS, GOAL, RELNAME, 0, 0, MASK),
-	isco_order_clause(ORDER, ORDER_CLAUSE),
-	arg(ARITY, GOAL, ORDER_CLAUSE+MASK).
+ite((RELNAME @ ARGS :\), GOAL) :- !,
+	ite((RELNAME @ ARGS), SGOAL),
+	SGOAL =.. [ SFUNC | ARGLIST ],
+	atom_concat('isco_delete__', SFUNC, FUNC),
+	GOAL =.. [ FUNC | ARGLIST ].
 
-isco_term_expansion((RELNAME := NEWARGS @ ARGS), GOAL) :- !,
-	isco_term_expansion((RELNAME @ ARGS := NEWARGS), GOAL).
+ite((RELNAME := NEWARGS @ ARGS), GOAL) :- !,
+	ite((RELNAME @ ARGS := NEWARGS), GOAL).
 
-isco_term_expansion((RELNAME @ ARGS := NEWARGS / G), GOAL) :-
+ite((RELNAME @ ARGS := NEWARGS / G), GOAL) :-
 	!,
 	isco_class(RELNAME, NUMARGS),
 	ARITY is NUMARGS+1+(NUMARGS-2)+1,
@@ -563,13 +565,13 @@ isco_term_expansion((RELNAME @ ARGS := NEWARGS / G), GOAL) :-
 	NUMARGSp2 is NUMARGS+1-2, % -2: omit OID and IOF, +1: skip OC+M
 	isco_arg_list(NEWARGS, GOAL, RELNAME, NUMARGSp2, 0, _).
 
-isco_term_expansion((RELNAME @ ARGS := NEWARGS), GOAL) :-
-	isco_term_expansion((RELNAME @ ARGS := NEWARGS / true), GOAL).
+ite((RELNAME @ ARGS := NEWARGS), GOAL) :-
+	ite((RELNAME @ ARGS := NEWARGS / true), GOAL).
 
 
 % -- ISCO/Prolog non-positional argument goal call ----------------------------
 
-isco_term_expansion((RELNAME @ ARGS), GOAL) :-
+ite((RELNAME @ ARGS), GOAL) :-
 	isco_classtype(RELNAME, computed),
 	!,
 	isco_class(RELNAME, ARITY),
@@ -577,7 +579,7 @@ isco_term_expansion((RELNAME @ ARGS), GOAL) :-
 	functor(GOAL, RELNAME, ARITY),
 	isco_arg_list(NARGS, GOAL, RELNAME, 0, 0, _).
 
-isco_term_expansion((RELNAME @ ARGS), GOAL) :-
+ite((RELNAME @ ARGS), GOAL) :-
 	isco_class(RELNAME, ARITYm1), ARITY is ARITYm1+1,
 	!,
 	isco_order_tuple(ARGS, NARGS, ORDER),
@@ -588,38 +590,43 @@ isco_term_expansion((RELNAME @ ARGS), GOAL) :-
 
 % -- ISCO/Prolog delete goal --------------------------------------------------
 
-isco_term_expansion((RELNAME_ARGS :\), GOAL) :-
-	functor(RELNAME_ARGS, RELNAME, _),	% what relation is this?
-	atom(RELNAME),				% make sure it's bound
-	isco_class(RELNAME, ARITYm1), ARITY is ARITYm1+1,
-	!,
-	RELNAME_ARGS =.. [_ | ARGLIST],
-	atom_concat('isco_delete__', RELNAME, PREDNAME),
-	functor(GOAL, PREDNAME, ARITY),
-	( ARGLIST=[] ->
-	    ORDER_CLAUSE = [],
-	    MASK = 0
-	;
-	    isco_arglist_to_args(ARGLIST, ARGS),
-	    isco_order_tuple(ARGS, NARGS, ORDER),
-	    isco_order_clause(ORDER, ORDER_CLAUSE),
-	    isco_arg_list(NARGS, GOAL, RELNAME, 0, 0, MASK) ),
-	arg(ARITY, GOAL, ORDER_CLAUSE+MASK).
+ite((RELNAME_ARGS :\), GOAL) :-
+	ite(RELNAME_ARGS, SGOAL),
+	SGOAL =.. [ SFUNC | ARGLIST ],
+	atom_concat('isco_delete__', SFUNC, FUNC),
+	GOAL =.. [ FUNC | ARGLIST ].
 
-% -- ISCO/Prolog update goal call ---------------------------------------------
+% -- ISCO/Prolog select goal call ---------------------------------------------
 
-isco_term_expansion((RELNAME_ARGS), GOAL) :-
+ite((RELNAME_ARGS), GOAL) :-			% with positional args
 	functor(RELNAME_ARGS, RELNAME, NUMARGS), % what relation is this?
-	NUMARGS > 0,				% need at least one arg!
-	isco_class(RELNAME, _ARITYm2),		% do we know about it?
+	isco_valid_pos_args(RELNAME, NUMARGS, 0), % is this directly OK?
 	!,
 	RELNAME_ARGS =.. [_ | ARGLIST],
+	append([RELNAME | ARGLIST], [[]+0], GOAL_LIST),
+	GOAL =.. GOAL_LIST.
+
+ite((RELNAME_ARGS), GOAL) :-			% with positional args
+	functor(RELNAME_ARGS, RELNAME, NUMARGS), % what relation is this?
+	isco_valid_pos_args(RELNAME, NUMARGS, 2), % requires OID+IOF?
+	!,
+	RELNAME_ARGS =.. [_ | ARGLIST],
+	append([RELNAME, _, _ | ARGLIST], [[]+0], GOAL_LIST),
+	GOAL =.. GOAL_LIST.
+
+ite((RELNAME_ARGS), GOAL) :-			% with named args
+	functor(RELNAME_ARGS, RELNAME, NUMARGS), % what relation is this?
+	isco_class(RELNAME, _),			% do we know about it?
+	NUMARGS > 0,				% need at least one.
+	RELNAME_ARGS =.. [_ | ARGLIST],		% look at argument list...
+	isco_valid_npos_args(ARGLIST, RELNAME),	% ...do the args look OK?
+	!,
 	isco_arglist_to_args(ARGLIST, ARGS),
-	isco_term_expansion((RELNAME @ ARGS), GOAL). % easy way around...
+	ite((RELNAME @ ARGS), GOAL). % easy way around...
 
 % -- ISCO/Prolog insert goal --------------------------------------------------
 
-isco_term_expansion((RELNAME := NEWARGS), GOAL) :-
+ite((RELNAME := NEWARGS), GOAL) :-
 	atom(RELNAME),				% make sure it's bound
 	isco_class(RELNAME, ARITY),
 	!,
@@ -627,68 +634,63 @@ isco_term_expansion((RELNAME := NEWARGS), GOAL) :-
 	functor(GOAL, PREDNAME, ARITY),
 	isco_arg_list(NEWARGS, GOAL, RELNAME).
 
-isco_term_expansion((RELNAME_ARGS :+), GOAL) :-	% alternate syntax
+ite((RELNAME_ARGS :+), GOAL) :-	% alternate syntax
 	RELNAME_ARGS =.. [RELNAME | ARGLIST],
 	atom(RELNAME),
 	isco_class(RELNAME, _ARITY),
 	!,
 	isco_arglist_to_args(ARGLIST, ARGS),
-	isco_term_expansion((RELNAME := ARGS), GOAL).
+	ite((RELNAME := ARGS), GOAL).
 
 % -- Update goal --------------------------------------------------------------
 
-isco_term_expansion((RELNAME_ARGS := NEWARGS), GOAL) :-
+ite((RELNAME_ARGS := NEWARGS), GOAL) :-
 	functor(RELNAME_ARGS, RELNAME, _NUMARGS), % what relation is this?
 	isco_class(RELNAME, _),			% do we know about it?
 	!,
 	RELNAME_ARGS =.. [_ | ARGLIST],
 	isco_arglist_to_args(ARGLIST, ARGS),
-	isco_term_expansion((RELNAME@ARGS:=NEWARGS), GOAL).
+	ite((RELNAME@ARGS:=NEWARGS), GOAL).
 
 
 % -- Compound goals -----------------------------------------------------------
 
-isco_term_expansion((A,B), (GA,GB)) :-
+ite((A,B), (GA,GB)) :-
 	!,
 	isco_term_expansion(A, GA),
 	isco_term_expansion(B, GB).
 
-isco_term_expansion((A->B;C), (GA->GB;GC)) :-
+ite((A->B;C), (GA->GB;GC)) :-
 	!,
 	isco_term_expansion(A, GA),
 	isco_term_expansion(B, GB),
 	isco_term_expansion(C, GC).
 
-isco_term_expansion((A;B), (GA;GB)) :-
+ite((A;B), (GA;GB)) :-
 	!,
 	isco_term_expansion(A, GA),
 	isco_term_expansion(B, GB).
 
-isco_term_expansion(setof(X,A,Y), setof(X,GOAL,Y)) :-
+ite(setof(X,A,Y), setof(X,GOAL,Y)) :-
 	!,
 	isco_term_expansion_setof(A, GOAL).
 
-isco_term_expansion(bagof(X,A,Y), bagof(X,GOAL,Y)) :-
+ite(bagof(X,A,Y), bagof(X,GOAL,Y)) :-
 	!,
 	isco_term_expansion_setof(A, GOAL).
 
-isco_term_expansion(findall(X,A,Y), findall(X,GOAL,Y)) :-
+ite(findall(X,A,Y), findall(X,GOAL,Y)) :-
 	!,
 	isco_term_expansion(A, GOAL).
 
-isco_term_expansion(call(A), call(GOAL)) :-
-	!,
-	isco_term_expansion(A, GOAL).
+ite(call(A), call(GOAL)) :- !, isco_term_expansion(A, GOAL).
+ite(\+(A), \+(GOAL)) :- !, isco_term_expansion(A, GOAL).
+ite(once(A), once(GOAL)) :- !, isco_term_expansion(A, GOAL).
 
-isco_term_expansion(\+(A), \+(GOAL)) :-
-	!,
-	isco_term_expansion(A, GOAL).
-
-isco_term_expansion(once(A), once(GOAL)) :-
-	!,
-	isco_term_expansion(A, GOAL).
-
-isco_term_expansion(X, X).			% anything else...
+ite((U :> A), (U :> GOAL)) :- !, isco_term_expansion(A, GOAL).
+ite((C :< A), (C :< GOAL)) :- !, isco_term_expansion(A, GOAL).
+ite((:^ A), (:^ GOAL)) :- !, isco_term_expansion(A, GOAL).
+ite((:# A), (:# GOAL)) :- !, isco_term_expansion(A, GOAL).
 
 
 isco_term_expansion_setof(X^A, X^GOAL) :-
@@ -696,6 +698,25 @@ isco_term_expansion_setof(X^A, X^GOAL) :-
 	isco_term_expansion_setof(A, GOAL).
 isco_term_expansion_setof(A, GOAL) :-
 	isco_term_expansion(A, GOAL).
+
+
+isco_valid_pos_args(CNAME, NA, 0) :- isco_class(CNAME, NA), !.
+isco_valid_pos_args(CNAME, NA, 2) :- isco_class(CNAME, NAp2), NA is NAp2-2.
+
+
+isco_valid_npos_args([], _).
+isco_valid_npos_args([A|As], C) :-
+	nonvar(A), A = (_=_), !,
+	isco_valid_npos_args(As, C).
+isco_valid_npos_args([A|As], C) :-
+	nonvar(A), A =.. [SORTOP, (_=_)], isco_sort_op(SORTOP), !,
+	isco_valid_npos_args(As, C).
+
+
+isco_sort_op(@>).
+isco_sort_op(@<).
+isco_sort_op(asc).
+isco_sort_op(desc).
 
 
 % -----------------------------------------------------------------------------
@@ -734,6 +755,13 @@ isco_tsort_level(M, PX, N, X) :-
 % -----------------------------------------------------------------------------
 
 % $Log$
+% Revision 1.16  2003/04/15 15:07:03  spa
+% - fix SQL construction of constrained parameters (quotes were wrong)
+% - isco_term_expansion rebuilt.
+% - recognize contextual calls.
+% - deletes are now explicitly built from reworked selects.
+% - recognize sorted arguments, etc, when doing non-positional args.
+%
 % Revision 1.15  2003/04/09 12:06:54  spa
 % "Quote" field names in inserts, as they may be reserved words.
 % Cast date+time to "timestamp", not "datetime".
