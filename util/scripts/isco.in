@@ -83,6 +83,8 @@ ISEP=""
 PIFILES=""
 PISEP=""
 
+LDFLAGS="--global-size 65536 --trail-size 12288"
+
 # -- go! ----------------------------------------------------------------------
 
 COMPILE=
@@ -129,6 +131,8 @@ may be:
 
   -db=NAME            Specify default ISCO database name
   -d NAME             (defaults to "isco")
+
+  -L FLAG             Add (any) linker flag.
 EOF
     exit 1;;
 
@@ -147,6 +151,11 @@ EOF
 
   -d)
     DB=$2;
+    shift;
+    shift;;
+
+  -L)
+    LDFLAGS="$LDFLAGS $2";
     shift;
     shift;;
 
@@ -238,8 +247,8 @@ done
 
 [ -n "$VERBOSE" ] && \
   echo 1>&2 \
-    $GPLC $GPLCTOP -o $OUTPUT $PREFIX $CGIMAIN $FILES $SUFFIX $PILLOW $LIBPHP
-$GPLC $GPLCTOP -o $OUTPUT $PREFIX $CGIMAIN $FILES $SUFFIX $PILLOW $LIBPHP
+    $GPLC $GPLCTOP -o $OUTPUT $PREFIX $CGIMAIN $FILES $SUFFIX $PILLOW $LIBPHP $LDFLAGS
+$GPLC $GPLCTOP -o $OUTPUT $PREFIX $CGIMAIN $FILES $SUFFIX $PILLOW $LIBPHP $LDFLAGS
 
 [ -n "$CGIMAIN" ] && rm -f $CGIMAIN
 
