@@ -107,6 +107,7 @@ GPLCTOP=
 LIBPHP=
 LIBLDAP=
 DB=isco
+UNIT=
 while [ ! -z "$1" ]; do
   case $1 in
 
@@ -142,8 +143,11 @@ may be:
   -s                  Link with unit to produce SQL schema
                       (not usually needed)
 
-  -db=NAME            Specify default ISCO database name
+  --db=NAME           Specify default ISCO database name
   -d NAME             (defaults to "isco")
+
+  --unit=NAME         Unit in which to create Prolog code
+  -u NAME             (defaults to global: [])
 
   -L FLAG             Add (any) linker flag.
 EOF
@@ -164,6 +168,15 @@ EOF
 
   -d)
     DB=$2;
+    shift;
+    shift;;
+
+  --unit=*)
+    UNIT=${1#--unit=};
+    shift;;
+
+  -u)
+    UNIT=$2;
     shift;
     shift;;
 
@@ -255,7 +268,8 @@ for IFILE in $IFILES; do
     [ -z "$KEEP" ] && { PIFILES="$PIFILES$PISEP$PIFILE"; PISEP=" "; }
   fi
   [ -n "$VERBOSE" ] && echo 1>&2 $ISCOC -d $DB -c $IFILE ">" $PIFILE
-  $ISCOC -d $DB -c $IFILE > $PIFILE
+  ( [ -n "$UNIT" ] && echo ":- unit($UNIT)." ; 
+    $ISCOC -d $DB -c $IFILE ) > $PIFILE
   FILES="$FILES$SEP$PIFILE"
   SEP=" "
 done
