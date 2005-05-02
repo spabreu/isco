@@ -35,7 +35,7 @@ isco_prolog_class_body(Vs, CNAME, RNAME, HEAD, GOAL, CH, OC_VAR+MASK) :-
 	  isco_mask_to_var_list(HEAD, _, MASK1, VL1),
 	  reverse(VL1, VL1r),
 	  isco_var_list_to_select(VL1r, ", ", "", SELf),
-	  format_to_codes(SQLin, 'select o.oid, ~w as instanceOf~s from "~w" o~w', [RELNAME, SELf, RNAME, TABLE_WHERE]),
+	  format_to_codes(SQLin, 'select o.oid::text, ~w as instanceOf~s from "~w" o~w', [RELNAME, SELf, RNAME, TABLE_WHERE]),
 	  G1 ),
 	isco_where_clause(WHERE_PFX, Vs, CH, G1, G2, SQLin, SQLout),
 	G2 = (append(SQLout, OC_VAR, SQLfinal),
