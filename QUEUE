@@ -1,7 +1,11 @@
 TODO:
 
-- "-u" flag to create a unit for each class.
-- 
+- "-U" flag (choice of flag?) to create a unit for each class.
+-- one units, with all the arguments.
+-- defined predicates:
+--- item/0
+- "lazy" unit to delay code emission.
+- cache
 
 DONE:
 
@@ -15,3 +19,4 @@ DONE:
 - delete: take care of oid= and instanceOf=
 - update: runtime interface
 [2.3-5] - internal (default) db: allow host/username to be specified
+[2.5-1] - "-u UNIT" flag to create all the code in a single unit
