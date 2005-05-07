@@ -12,7 +12,7 @@ Depends: ${shlibs:Depends},
  php4,
  gprolog-cx (>=1.2.18),
  gprolog-php-cx,
- gprolog-postgresql-cx,
+ gprolog-postgresql-cx (>=1.2),
  gprolog-odbc-cx,
  gprolog-pillow-cx,
  java-compiler, java-virtual-machine, cup (>=0.10k), jlex (>=1.2.5)
