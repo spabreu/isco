@@ -313,12 +313,17 @@ isco_odbc_text_format_no_percent([X|A], [X|B]) :- % default
 
 % -- Replace all variables by '%' (for SQL "like" matching...) ----------------
 
-isco_percent_variables(V) :- var(V), !, V='%'.
-isco_percent_variables(X) :- atomic(X), !.
-isco_percent_variables([V|Vs]) :- !,
-	isco_percent_variables(V),
-	isco_percent_variables(Vs).
-isco_percent_variables(V) :- V=..[_|Vs], isco_percent_variables(Vs).
+isco_percent_variables(T) :-
+	isco_percent_variables(T, VARS), !,
+	nonvar(VARS).
+
+isco_percent_variables(V, vars) :- var(V), !, V='%'.
+isco_percent_variables(X, _) :- atomic(X), !.
+isco_percent_variables([V|Vs], VARS) :- !,
+	isco_percent_variables(V, VARS),
+	isco_percent_variables(Vs, VARS).
+isco_percent_variables(V, VARS) :-
+	V=..[_|Vs], isco_percent_variables(Vs, VARS).
 
 
 % -- ISCO/ODBC formats for constrained variables ------------------------------
@@ -371,10 +376,14 @@ isco_where_var(_, V, N, T, WP, 'and', WC, WCo) :-
 isco_where_var(_, V, N, term, WP, 'and', WC, WCo) :- % special for terms...
 	nonvar(V), !,
 	copy_term(V, VC),
-	isco_percent_variables(VC),
-	format_to_codes(VS, '~k', [VC]),
+	( isco_percent_variables(VC) ->
+	    format_to_codes(VS, '~k', [VC]),
+	    LIKE=" like "
+	;
+	    format_to_codes(VS, '~k', [V]),
+	    LIKE="=" ),
 	isco_odbc_text_format_no_percent(VS, VF), % mung quotes...
-	format_to_codes(WCo, '~s ~w o."~w" like \'~s\'', [WC, WP, N, VF]).
+	format_to_codes(WCo, '~s ~w o."~w"~s\'~s\'', [WC, WP, N, LIKE, VF]).
 isco_where_var(C, V, N, T, WP, 'and', WC, WCo) :-
 	(N = instanceOf ->
 	    ( isco_superclass(C, _) ->
@@ -771,6 +780,10 @@ isco_tsort_level(M, PX, N, X) :-
 % -----------------------------------------------------------------------------
 
 % $Log$
+% Revision 1.20  2005/05/07 15:25:42  spa
+% Generate "where foo = 'value'" instead of " ... like 'value'" for
+% ground terms, as it enables index searches.
+%
 % Revision 1.19  2004/04/27 20:13:39  spa
 % isco_where_var/8: take into account that final classes don't have a
 %     "c.relname" available.
