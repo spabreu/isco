@@ -68,7 +68,7 @@ GPROLOG_LDAP="\
         $PLXDIR/ldap/interface.pl \
         $PLXDIR/ldap/module.o"
 
-LDAP_CX=`find $PLXDIR/ldap-cx -name \*.o | xargs`
+LDAP_CX=`find $PLXDIR/ldap-cx -name \*.o 2>/dev/null | xargs`
 
 LDAP="$GPROLOG_LDAP $LDAP_CX -L -lldap"
 
@@ -108,6 +108,7 @@ LIBPHP=
 LIBLDAP=
 DB=isco
 UNIT=
+OID=
 while [ ! -z "$1" ]; do
   case $1 in
 
@@ -178,6 +179,10 @@ EOF
   -u)
     UNIT=$2;
     shift;
+    shift;;
+
+  --oid=text|--oid=int|--oid=zero)
+    OID=$1;
     shift;;
 
   -L)

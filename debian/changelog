@@ -1,3 +1,22 @@
+isco (2.5-3) unstable; urgency=low
+
+  * use the new OID representation scheme provided by
+    gprolog-postgresql-cx 1.2, namely FOO or xwd(HIGH, LOW27).
+  * undoes --oid=... flags and some of the other related changes, as
+    they're not necessary anymore: xwd(X,Y) is now transparent so long as
+    we don't do arithmetic on it.
+
+ -- Salvador Abreu <spa@debian.org>  Sat,  7 May 2005 16:20:22 +0100
+
+isco (2.5-2) unstable; urgency=low
+
+  * --oid= flag to decide how to type OIDs (integers, text or ignored)
+  * runtime/runtime.pl: format "term" identity with "like" or "=" if
+    ground.
+  * utils/scripts/isco.in: adjust for new flags.
+
+ -- Salvador Abreu <spa@debian.org>  Thu,  5 May 2005 17:51:20 +0100
+
 isco (2.5-1) unstable; urgency=low
 
   * --unit flag in ISCO top level: generates context-aware Prolog code.

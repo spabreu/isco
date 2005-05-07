@@ -111,6 +111,9 @@ flag(['-p', EXENAME|REST], REST, [php|A], A) :- !,
 flag([PHP_EXENAME|REST], REST, [php|A], A) :-
 	atom_concat('--php=', EXENAME, PHP_EXENAME), !,
 	g_assign(isco_exe_filename, EXENAME).
+flag(['--oid=int'|REST], REST, A, A).  % remains for backward compatibility
+flag(['--oid=zero'|REST], REST, A, A). % remains for backward compatibility
+flag(['--oid=text'|REST], REST, A, A). % remains for backward compatibility
 flag([FLAG|REST], REST, [COMMAND|A], A) :-
 	single_flag(FLAG, COMMAND), !.
 flag([FLAG|_], _, _, _) :-
@@ -189,6 +192,9 @@ isco_php_lib('-L -lpq').
 
 
 % $Log$
+% Revision 1.6  2005/05/07 15:24:43  spa
+% Back off text OIDs: "large" ints are now xwd(UH,LH).
+%
 % Revision 1.5  2003/06/16 10:43:47  spa
 % Implement -d host:db syntax.
 %

@@ -143,7 +143,7 @@ isco_apt_default_fields([_|_], _, _, _) :- !.	% it's a subclass: inherit
 isco_apt_default_fields(_, FST, CNAME, ST) :-	% not a subclass: extra fields.
 	prolog(ST) :> isco_locate_generator(CNAME, GEN),
 	insert(FST, f(2, instanceOf, text, [hidden|IOFX])),
-	insert(FST, f(1, oid, text, [hidden|OIDX])),
+	insert(FST, f(1, oid, int, [hidden|OIDX])),
 	( GEN :> has(instanceOf) -> true ; IOFX=[fake(CNAME)|_] ),
 	( GEN :> has(oid) -> true ; OIDX=[fake(0)|_] ).
 
