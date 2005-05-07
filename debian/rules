@@ -21,6 +21,7 @@ clean:
 	$(checkdir)
 	-rm -f build
 	make -C src clean
+	make -C util/scripts clean
 	make -C util/schema-parser clean
 	find -name VERSION | xargs -r rm -f
 	dh_clean
