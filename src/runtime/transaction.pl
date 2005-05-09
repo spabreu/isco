@@ -30,6 +30,7 @@
 
 internal :- g_read(isco_isco, CONN).
 class(C) :- isco_get_connection(C, CONN).
+db(DB) :- atom_concat(isco_, DB, C), isco_connection(C, CONN).
 
 % -----------------------------------------------------------------------------
 
@@ -53,6 +54,9 @@ abort :- rollback.
 % 	( catch(GOAL1, _EX, fail) -> commit ; abort ).
 
 % $Log$
+% Revision 1.2  2005/05/09 22:56:16  spa
+% db/1 added.
+%
 % Revision 1.1  2005/05/09 22:47:42  spa
 % Initial release
 %
