@@ -24,36 +24,84 @@
 
 % == ISCO transaction support =================================================
 
-:- unit(transaction(CONN)).
+:- unit(transaction(CONNs)).
 
 % -----------------------------------------------------------------------------
 
-internal :- g_read(isco_isco, CONN).
-class(C) :- isco_get_connection(C, CONN).
-db(DB) :- atom_concat(isco_, DB, C), isco_connection(C, CONN).
+use(internal) :- !,
+	g_read(isco_isco, CONN),
+	ol_insert(CONNs, CONN).
+use(class(C)) :- !,
+	isco_get_connection(C, CONN),
+	ol_insert(CONNs, CONN).
+use(db(DB)) :- !,
+	atom_concat(isco_, DB, C),
+	isco_connection(C, CONN),
+	ol_insert(CONNs, CONN).
+use(CONN) :- !,
+	ol_insert(CONNs, CONN).
+
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+using(X) :- ol_member(X, CONNs).
+
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+lock :- ol_close(CONNs).
 
 % -----------------------------------------------------------------------------
 
-begin :-
-	isco_be_exec(CONN, "begin transaction", R),
-	isco_be_fetch(CONN, R) -> true ; true.
+transaction_command(C) :-
+	format_to_codes(S, "%s transaction", [C]),
+	command_on_list(CONNs, S).
 
-commit :-
-	isco_be_exec(CONN, "end transaction", R),
-	isco_be_fetch(CONN, R) -> true ; true.
-end :- commit.
+command_on_list(L, _) :- var(L), !.
+command_on_list([], _) :- !.
+command_on_list([L|Ls], C) :-
+	isco_be_exec(L, C, R),
+	( isco_be_fetch(L, R) -> true ; true ), !,
+	command_on_list(Ls, C).
 
-rollback :-
-	isco_be_exec(CONN, "rollback transaction", R),
-	isco_be_fetch(CONN, R) -> true ; true.
-abort :- rollback.
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-% atomic(GOAL) :-
-% 	isco_term_expansion(GOAL, GOAL1),
-% 	begin,
-% 	( catch(GOAL1, _EX, fail) -> commit ; abort ).
+begin    :- transaction_command("begin").
+commit   :- transaction_command("commit").
+end      :- transaction_command("end"); % same as "commit"
+rollback :- transaction_command("rollback").
+abort    :- transaction_command("abort"). % same as "rollback"
+
+try(GOAL) :-
+	isco_term_expansion(GOAL, GOAL1),
+	begin, ( catch(GOAL1, _EX, fail) -> commit ; abort, fail ).
+
+% -----------------------------------------------------------------------------
+
+ol_add(L, I) :- var(L), !, L=[I|_].
+ol_add([_|L], I) :- ol_add(L, I).
+
+ol_member(_,  L) :- var(L), !, fail.
+ol_member(X, [X|_]).
+ol_member(X, [_|L]) :- ol_member(X, L).
+
+ol_memberchk(_,  L) :- var(L), !, fail.
+ol_memberchk(X, [X|_]) :- !.
+ol_memberchk(X, [_|L]) :- ol_memberchk(X, L).
+
+ol_insert(L, I) :- ol_memberchk(I, L), !.
+ol_insert(L, I) :- ol_add(L, I).
+
+ol_close([]) :- !.
+ol_close([_|L]) :- ol_close(L).
+
+% -----------------------------------------------------------------------------
 
 % $Log$
+% Revision 1.3  2005/05/10 11:48:26  spa
+% Mucho changed:
+% - channel specifier preds now clauses for use/1
+% - factored "begin", "end", etc. into transaction_command/1
+% - act on a list of connections (allow for multiple concurrent transactions)
+%
 % Revision 1.2  2005/05/09 22:56:16  spa
 % db/1 added.
 %
