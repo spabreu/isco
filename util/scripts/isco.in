@@ -55,6 +55,7 @@ PREFIX="\
 	$LIBDIR/backend.o \
 	$LIBDIR/backend-odbc.o \
 	$LIBDIR/backend-pg.o \
+	$LIBDIR/transaction.o \
 	$LIBDIR/isco_lib_dir.o"
 
 DB="\
