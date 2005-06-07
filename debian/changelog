@@ -1,8 +1,9 @@
 isco (2.5-5) unstable; urgency=low
 
   * utils/scripts/isco.in: Add transaction.o to the linked objects.
+  * src/runtime/transaction.pl: don't overdo rollbacks in try/1.
 
- -- Salvador Abreu <spa@debian.org>  Tue,  7 Jun 2005 17:29:05 +0100
+ -- Salvador Abreu <spa@debian.org>  Tue,  7 Jun 2005 17:33:14 +0100
 
 isco (2.5-4) unstable; urgency=low
 
