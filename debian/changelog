@@ -1,3 +1,15 @@
+isco (2.5-5) unstable; urgency=low
+
+  * utils/scripts/isco.in: Add transaction.o to the linked objects.
+
+ -- Salvador Abreu <spa@debian.org>  Tue,  7 Jun 2005 17:29:05 +0100
+
+isco (2.5-4) unstable; urgency=low
+
+  * Including and tweaking the exception.pl module.
+
+ -- Salvador Abreu <spa@debian.org>  Tue,  7 Jun 2005 15:12:54 +0100
+
 isco (2.5-3) unstable; urgency=low
 
   * use the new OID representation scheme provided by
