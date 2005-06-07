@@ -75,7 +75,7 @@ try(GOAL) :-
 	begin,
 	( ol_memberchk(except, CONNs) ->
 	    EX_GOAL = (rollback, throw(EX)) ;
-	    EX_GOAL = (rollback, fail) ),
+	    EX_GOAL = fail ),
 	( catch(GOAL1, EX, EX_GOAL) -> commit ; rollback, fail ).
 
 
@@ -101,6 +101,9 @@ ol_close([_|L]) :- ol_close(L).
 % -----------------------------------------------------------------------------
 
 % $Log$
+% Revision 1.9  2005/06/07 16:35:51  spa
+% fixed action on catch/3 w/o except: only do ONE rollback!
+%
 % Revision 1.8  2005/06/07 14:28:03  ljcq
 % - try_ex/1
 %
