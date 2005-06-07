@@ -70,7 +70,7 @@ rollback :- transaction_command("rollback").
 
 try(GOAL) :-
 	isco_term_expansion(GOAL, GOAL1),
-	begin, ( catch(GOAL1, _EX, fail) -> commit ; abort, fail ).
+	begin, ( catch(GOAL1, _EX, fail) -> commit ; rollback, fail ).
 
 % -----------------------------------------------------------------------------
 
@@ -94,6 +94,9 @@ ol_close([_|L]) :- ol_close(L).
 % -----------------------------------------------------------------------------
 
 % $Log$
+% Revision 1.6  2005/06/07 13:54:30  spa
+% typo.
+%
 % Revision 1.5  2005/06/07 13:54:12  spa
 % end/0 and abort/0 are now gone.
 %
