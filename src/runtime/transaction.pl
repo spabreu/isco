@@ -58,8 +58,9 @@ transaction_command(C) :-
 command_on_list(L, _) :- var(L), !.
 command_on_list([], _) :- !.
 command_on_list([L|Ls], C) :-
-	isco_be_exec(L, C, R),
-	( isco_be_fetch(L, R) -> true ; true ), !,
+	( integer(L) -> 
+	    isco_be_exec(L, C, R),
+	    ( isco_be_fetch(L, R) -> true ; true ), ! ; true ),
 	command_on_list(Ls, C).
 
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -67,10 +68,15 @@ command_on_list([L|Ls], C) :-
 begin    :- transaction_command("begin").
 commit   :- transaction_command("commit").
 rollback :- transaction_command("rollback").
+except   :- ol_insert(CONNs, except).
 
 try(GOAL) :-
-	isco_term_expansion(GOAL, GOAL1),
-	begin, ( catch(GOAL1, _EX, fail) -> commit ; rollback, fail ).
+	:# isco_term_expansion(GOAL, GOAL1),
+	begin,
+	( ol_memberchk(except, CONNs) ->
+	    EX_GOAL = (rollback, throw(EX)) ;
+	    EX_GOAL = (rollback, fail) ),
+	( catch(GOAL1, EX, EX_GOAL) -> commit ; rollback, fail ).
 
 % -----------------------------------------------------------------------------
 
@@ -94,6 +100,10 @@ ol_close([_|L]) :- ol_close(L).
 % -----------------------------------------------------------------------------
 
 % $Log$
+% Revision 1.7  2005/06/07 14:14:31  spa
+% try/1 now incorporates the old try_ex/1 funcionality, by means of a
+% paramenter transmitted by the "except/0" goal.
+%
 % Revision 1.6  2005/06/07 13:54:30  spa
 % typo.
 %
