@@ -29,7 +29,7 @@
 % -----------------------------------------------------------------------------
 
 use(internal) :- !,
-	g_read(isco_isco, CONN),
+	:# isco_connection(CONN),
 	ol_insert(CONNs, CONN).
 use(class(C)) :- !,
 	:# isco_get_connection(C, CONN),
@@ -52,15 +52,16 @@ lock :- ol_close(CONNs).
 % -----------------------------------------------------------------------------
 
 transaction_command(C) :-
-	format_to_codes(S, "%s transaction", [C]),
+	format_to_codes(S, "~s transaction", [C]),
 	command_on_list(CONNs, S).
 
 command_on_list(L, _) :- var(L), !.
 command_on_list([], _) :- !.
+command_on_list([except|Ls], C) :- !, command_on_list(Ls, C).
 command_on_list([L|Ls], C) :-
-	( integer(L) -> 
-	    isco_be_exec(L, C, R),
-	    ( isco_be_fetch(L, R) -> true ; true ), ! ; true ),
+	(g_read(isco_debug_sql, 1) -> format('sql(~w): ~s\n', [L,C]) ; true),
+	isco_be_exec(L, C, R),
+	( isco_be_fetch(L, R) -> true ; true ), !,
 	command_on_list(Ls, C).
 
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -101,6 +102,11 @@ ol_close([_|L]) :- ol_close(L).
 % -----------------------------------------------------------------------------
 
 % $Log$
+% Revision 1.10  2005/06/07 17:38:30  spa
+% use(internal): extract connection from isco_connection/1.
+% transaction_command/1: format for strings.
+% command_on_list/2: ignore "except" and pay attention to isco_debug_sql.
+%
 % Revision 1.9  2005/06/07 16:35:51  spa
 % fixed action on catch/3 w/o except: only do ONE rollback!
 %
