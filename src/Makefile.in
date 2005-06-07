@@ -54,6 +54,7 @@ PLFILES = \
 	runtime/backend.pl \
 	runtime/backend-pg.pl \
 	runtime/backend-odbc.pl \
+	runtime/transaction.pl \
 	back-end/code-gen-directives.pl \
 	back-end/prolog.pl \
 	back-end/inherit.pl \
@@ -76,6 +77,7 @@ ISCOC_OBJECTS = \
 	runtime/backend.o \
 	runtime/backend-pg.o \
 	runtime/backend-odbc.o \
+	runtime/transaction.o \
 	symtab.o \
 	ctype.o \
 	empty-classes.o \
@@ -106,6 +108,7 @@ LIB_OBJECTS = \
 	runtime/backend.o \
 	runtime/backend-pg.o \
 	runtime/backend-odbc.o \
+	runtime/transaction.o \
 	back-end/prolog.o \
 	$(subst .pl,.o,$(wildcard back-end/code/*.pl)) \
 	back-end/sql-build.o \
@@ -196,6 +199,9 @@ revision.pl: revision.pl.in ../debian/changelog
 
 
 # $Log$
+# Revision 1.13  2005/06/07 14:16:57  spa
+# include transaction.pl and .o
+#
 # Revision 1.12  2003/04/15 15:00:38  spa
 # Make an "iscoc-shell" to assist in debugging (not installed: in-place only)
 #
