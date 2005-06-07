@@ -1,3 +1,12 @@
+isco (2.5-6) unstable; urgency=low
+
+  * src/runtime/transaction.pl: 
+    - begin/0, commit/0, rollback/0: don't use strings.
+    - log SQL commands as per isco_debug_sql.
+    - clean up back-end detection.
+
+ -- Salvador Abreu <spa@debian.org>  Tue,  7 Jun 2005 18:38:54 +0100
+
 isco (2.5-5) unstable; urgency=low
 
   * utils/scripts/isco.in: Add transaction.o to the linked objects.
