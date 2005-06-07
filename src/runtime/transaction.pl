@@ -32,11 +32,11 @@ use(internal) :- !,
 	g_read(isco_isco, CONN),
 	ol_insert(CONNs, CONN).
 use(class(C)) :- !,
-	isco_get_connection(C, CONN),
+	:# isco_get_connection(C, CONN),
 	ol_insert(CONNs, CONN).
 use(db(DB)) :- !,
 	atom_concat(isco_, DB, C),
-	isco_connection(C, CONN),
+	:# isco_connection(C, CONN),
 	ol_insert(CONNs, CONN).
 use(CONN) :- !,
 	ol_insert(CONNs, CONN).
@@ -96,6 +96,9 @@ ol_close([_|L]) :- ol_close(L).
 % -----------------------------------------------------------------------------
 
 % $Log$
+% Revision 1.4  2005/06/07 13:53:40  spa
+% lazy calls in use/1.
+%
 % Revision 1.3  2005/05/10 11:48:26  spa
 % Mucho changed:
 % - channel specifier preds now clauses for use/1
