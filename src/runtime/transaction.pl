@@ -66,9 +66,7 @@ command_on_list([L|Ls], C) :-
 
 begin    :- transaction_command("begin").
 commit   :- transaction_command("commit").
-end      :- transaction_command("end"); % same as "commit"
 rollback :- transaction_command("rollback").
-abort    :- transaction_command("abort"). % same as "rollback"
 
 try(GOAL) :-
 	isco_term_expansion(GOAL, GOAL1),
@@ -96,6 +94,9 @@ ol_close([_|L]) :- ol_close(L).
 % -----------------------------------------------------------------------------
 
 % $Log$
+% Revision 1.5  2005/06/07 13:54:12  spa
+% end/0 and abort/0 are now gone.
+%
 % Revision 1.4  2005/06/07 13:53:40  spa
 % lazy calls in use/1.
 %
