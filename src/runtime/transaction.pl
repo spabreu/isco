@@ -72,12 +72,11 @@ rollback :- transaction_command("rollback").
 except   :- ol_insert(CONNs, except).
 
 try(GOAL) :-
-	:# isco_term_expansion(GOAL, GOAL1),
 	begin,
 	( ol_memberchk(except, CONNs) ->
 	    EX_GOAL = (rollback, throw(EX)) ;
 	    EX_GOAL = fail ),
-	( catch(GOAL1, EX, EX_GOAL) -> commit ; rollback, fail ).
+	( catch(GOAL, EX, EX_GOAL) -> commit ; rollback, fail ).
 
 
 % -----------------------------------------------------------------------------
@@ -102,6 +101,10 @@ ol_close([_|L]) :- ol_close(L).
 % -----------------------------------------------------------------------------
 
 % $Log$
+% Revision 1.11  2005/06/23 15:41:19  spa
+% don't use isco_term_expansion/2 in try/1.
+% try/1 returns first result of subgoal only.
+%
 % Revision 1.10  2005/06/07 17:38:30  spa
 % use(internal): extract connection from isco_connection/1.
 % transaction_command/1: format for strings.
