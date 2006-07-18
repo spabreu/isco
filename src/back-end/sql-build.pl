@@ -89,7 +89,9 @@ isco_sql_code(REL, DBTYPE) :-
 	isco_sql_header(REL, COMMA),
 	isco_sql_fields(REL, DBTYPE, COMMA, COMMAout),
 	isco_sql_class_attributes(REL, DBTYPE, COMMAout),
-	isco_sql_trail(REL, DBTYPE).
+	isco_sql_trail(REL, DBTYPE),
+	isco_sql_oid(REL, DBTYPE),
+	format(';', []).
 
 isco_sql_code(REL, DBTYPE) :-
 	isco_class(REL, _),
@@ -188,9 +190,13 @@ isco_sql_class_keylist([F|Fs], PFX) :-
 
 isco_sql_trail(REL, o_rel) :-
 	isco_superclass(REL, SC), !,
-	format(')\n    inherits ("~w");', [SC]).
+	format(')\n    inherits ("~w")', [SC]).
 isco_sql_trail(_, _) :-
-	format(');', []).
+	format(')', []).
+
+
+isco_sql_oid(_REL, o_rel) :- !, format('\n    with oids', []).
+isco_sql_oid(_, _).
 
 
 
@@ -286,6 +292,9 @@ isco_sql_extra_stuff(REL, _) :-
 % -----------------------------------------------------------------------------
 
 % $Log$
+% Revision 1.5  2006/07/18 09:34:19  spa
+% create tables WITH OIDS for postgresql 8.1.
+%
 % Revision 1.4  2003/05/24 14:43:30  spa
 % Avoid extraneous commas at the beginning of SQL create tables (when adding
 % constraints...)

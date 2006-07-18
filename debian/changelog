@@ -3,8 +3,9 @@ isco (2.5-7) unstable; urgency=low
   * compile for amd64.
   * allow either php4 or php5 in the dependencies.
   * properly install files (in debian/rules)
+  * deal with postgresql 8.1: create tables "with oids"...
 
- --  <spa@di.uevora.pt>  Tue, 18 Jul 2006 08:34:47 +0100
+ -- Salvador Abreu <spa@di.uevora.pt>  Tue, 18 Jul 2006 10:11:03 +0100
 
 isco (2.5-6) unstable; urgency=low
 
