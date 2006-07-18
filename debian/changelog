@@ -1,3 +1,11 @@
+isco (2.5-7) unstable; urgency=low
+
+  * compile for amd64.
+  * allow either php4 or php5 in the dependencies.
+  * properly install files (in debian/rules)
+
+ --  <spa@di.uevora.pt>  Tue, 18 Jul 2006 08:34:47 +0100
+
 isco (2.5-6) unstable; urgency=low
 
   * src/runtime/transaction.pl: 

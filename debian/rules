@@ -1,6 +1,6 @@
 #!/usr/bin/make -f
 
-DH_COMPAT=3
+export DH_COMPAT=4
 
 package=isco
 
@@ -30,24 +30,24 @@ clean:
 binary-indep: stamp-binary-indep
 stamp-binary-indep: checkroot build
 	$(checkdir)
-	-rm -rf debian/tmp
+	-rm -rf debian/${package}
 	touch stamp-binary-indep
 
 binary-arch: stamp-binary-arch
 stamp-binary-arch: checkroot build
 	$(checkdir)
-	-rm -rf debian/tmp
-	install -d debian/tmp
-	cd debian/tmp && install -d `cat ../dirs`
-	make -C src install PREFIX=../debian/tmp/usr SUBDIRS=""
-	make -C util/schema-parser install PREFIX=../../debian/tmp/usr
-	make -C util/scripts install PREFIX=../../debian/tmp/usr
+	-rm -rf debian/${package}
+	install -d debian/${package}
+	cd debian/${package} && install -d `cat ../dirs`
+	make -C src install PREFIX=../debian/${package}/usr SUBDIRS=""
+	make -C util/schema-parser install PREFIX=../../debian/${package}/usr
+	make -C util/scripts install PREFIX=../../debian/${package}/usr
 	dh_installdocs COPYRIGHT RELEASE TODO
 	dh_installchangelogs debian/changelog
-	install -m 644 debian/dhelp debian/tmp/usr/share/doc/$(package)/.dhelp
+	install -m 644 debian/dhelp debian/${package}/usr/share/doc/$(package)/.dhelp
 	install -m 644 debian/dwww-index \
-		debian/tmp/usr/share/doc/$(package)/.dwww-index
-	install -m 644 debian/manpage debian/tmp/usr/share/man/man1/isco.1
+		debian/${package}/usr/share/doc/$(package)/.dwww-index
+	install -m 644 debian/manpage debian/${package}/usr/share/man/man1/isco.1
 	dh_compress		#should be fixed
 	dh_installdeb
 	dh_shlibdeps
