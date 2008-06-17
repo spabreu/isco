@@ -106,6 +106,11 @@ flag(['-d', DBNAME|REST], REST, A, A) :- !,
 flag([DB_DBNAME|REST], REST, A, A) :-
 	atom_concat('--db=', DBNAME, DB_DBNAME), !,
 	g_assign(isco_default_database, DBNAME).
+flag(['-u', UNAME|REST], REST, A, A) :-
+	g_assign(isco_cx_unit, UNAME).
+flag([U_UNAME|REST], REST, A, A) :-
+	atom_concat('--unit=', UNAME, U_UNAME), !,
+	g_assign(isco_cx_unit, UNAME).
 flag(['-p', EXENAME|REST], REST, [php|A], A) :- !,
 	g_assign(isco_exe_filename, EXENAME).
 flag([PHP_EXENAME|REST], REST, [php|A], A) :-
@@ -134,16 +139,17 @@ single_flag('-h', _) :- !, single_flag('--help', _).
 single_flag('--help', _) :-
 	format("usage: isco FLAGS FILES...~n", []),
 	format("where FILES is one or more of:~n", []),
-	format("  FILENAME.isco  Include source file~n", []),
-	format("  DIRNAME        Include all source files in directory~n", []),
+	format("  FILENAME.isco   Include source file~n", []),
+	format("  DIRNAME         Include all source files in directory~n", []),
 	format("and FLAGS:~n", []),
-	format("  -s, --sql      Produce SQL output~n", []),
-	format("  -p, --php=NAME Produce PHP-ready executable in file NAME~n", []),
-	format("  -c, --compile  Produce Prolog output~n", []),
-	format("  -h, --help     This information~n", []),
-	format("  -d, --db=NAME  Specify ISCO default database~n", []),
-%	format("  -v, --verbose  Verbose information~n", []),
-	format("  --version      Display version information and exit~n", []),
+	format("  -s, --sql       Produce SQL output~n", []),
+	format("  -p, --php=NAME  Produce PHP-ready executable in file NAME~n", []),
+	format("  -c, --compile   Produce Prolog output~n", []),
+	format("  -h, --help      This information~n", []),
+	format("  -d, --db=NAME   Specify ISCO default database~n", []),
+	format("  -u, --unit=NAME Specify target CxLP unit~n", []),
+%	format("  -v, --verbose   Verbose information~n", []),
+	format("  --version       Display version information and exit~n", []),
 	halt.
 single_flag('--version', _) :-
 	isco_revision(R),
@@ -192,6 +198,9 @@ isco_php_lib('-L -lpq').
 
 
 % $Log$
+% Revision 1.7  2008/06/17 11:04:42  spa
+% --unit=UNAME flag
+%
 % Revision 1.6  2005/05/07 15:24:43  spa
 % Back off text OIDs: "large" ints are now xwd(UH,LH).
 %
