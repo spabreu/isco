@@ -273,9 +273,13 @@ for IFILE in $IFILES; do
     PIFILE=$(tempfile -p isco -s .pl)
     [ -z "$KEEP" ] && { PIFILES="$PIFILES$PISEP$PIFILE"; PISEP=" "; }
   fi
-  [ -n "$VERBOSE" ] && echo 1>&2 $ISCOC -d $DB -c $IFILE ">" $PIFILE
-  ( [ -n "$UNIT" ] && echo ":- unit($UNIT)." ; 
-    $ISCOC -d $DB -c $IFILE ) > $PIFILE
+  if [ -n "$UNIT" ]; then
+    UFLAG="-u $UNIT"
+  else
+    UFLAG=""
+  fi
+  [ -n "$VERBOSE" ] && echo 1>&2 $ISCOC -d $DB $UFLAG -c $IFILE ">" $PIFILE
+  $ISCOC -d $DB $UFLAG -c $IFILE > $PIFILE
   FILES="$FILES$SEP$PIFILE"
   SEP=" "
 done
