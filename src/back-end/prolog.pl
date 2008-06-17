@@ -42,7 +42,9 @@ st(ST).						% utility...
 
 isco_prolog_code(EST) :- var(EST), !.
 isco_prolog_code([external(NAME)=METHOD|Ss]) :-
-	atom_concat('isco_', NAME, ISCO_NAME),
+%%DBG	format('%% isco_prolog_code([~w ...])~n', [external(NAME)=METHOD]),
+	( NAME=isco -> isco_default_connection(ISCO_NAME)
+	; atom_concat('isco_', NAME, ISCO_NAME) ),
 	isco_prolog_external(METHOD, NAME, ISCO_NAME),
 	!,
 	isco_prolog_code(Ss).
@@ -698,7 +700,8 @@ isco_prolog_sequence(NAME, ATTRs) :-
 	    atom_concat('isco_', XDBREF, DBREF), SNAME=SEQ
 	; ol_memberchk(external(XDBREF), ATTRs) ->
 	    atom_concat('isco_', XDBREF, DBREF), SNAME=NAME
-	; DBREF=isco_isco, SNAME=NAME ),
+	; isco_default_connection(ISCO_ISCO),
+	  DBREF=ISCO_ISCO, SNAME=NAME ),
 	odbc_type(integer, TYPE),
 	format_to_atom(COMMENT, "%% -- ~w sequence. ", [NAME]),
 	atom_length(COMMENT, CLENGTH),
@@ -744,6 +747,9 @@ isco_prolog_sequence(NAME, ATTRs) :-
 % -----------------------------------------------------------------------------
 
 % $Log$
+% Revision 1.22  2008/06/17 13:11:46  spa
+% have default connection be context-sensitive
+%
 % Revision 1.21  2004/04/27 12:46:39  spa
 % - Support for avoiding use of "c.relname ... where c.oid=o.tableoid"
 %   when possible (final classes).

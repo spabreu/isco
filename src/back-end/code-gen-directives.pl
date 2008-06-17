@@ -27,15 +27,21 @@
 :- unit(directives(ST)).
 
 emit :-
-	( g_read(isco_cx_unit, UNIT),
-	  UNIT = 0 -> true ;
-	  format(':- unit(~q).~n~n', [UNIT]) ),
+	g_read(isco_cx_unit, UNIT),
+	( atom(UNIT) ->
+	    format(':- unit(~q). %% -- new~n~n', [UNIT])
+        ; true ),
 	isco_lib_directory(D),
 	isco_revision(REV),
 	format(':- initialization(isco_check_revision(~q)).~n', [REV]),
 	isco_prolog_code(ST), nl,
 	format(':- include(''~w/ops.pl'').~n', [D]),
-	format(':- discontiguous(isco_setup_connection/2).~n~n', []).
+	format(':- discontiguous(isco_setup_connection/2).~n~n', []),
+	( atom(UNIT) ->
+	    g_read(isco_default_database, DB),
+	    format('isco_local_connection(C) :- ', []),
+	    format('isco_connection(''isco_db_~w'', C).~n~n', [DB])
+	; true ).
 
 
 isco_prolog_code(EST) :- var(EST), !.
@@ -59,7 +65,10 @@ isco_prolog_specials([_|Ss]) :- isco_prolog_specials(Ss).
 % -----------------------------------------------------------------------------
 
 % $Log$
-% Revision 1.4  2008/06/17 11:42:44  spa
+% Revision 1.5  2008/06/17 13:12:12  spa
+% have default connection be context-sensitive
+%
+% Revision 1.4  2008-06-17 11:42:44  spa
 % emit :-unit declarations.
 %
 % Revision 1.3  2003/03/12 19:06:06  spa

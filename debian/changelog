@@ -1,3 +1,10 @@
+isco (2.5-9) unstable; urgency=low
+
+  * support multiple schemata in separate units
+  * new --unit=UNIT (-u UNIT) flag
+
+ -- Salvador Abreu <spa@debian-32.local>  Tue, 17 Jun 2008 14:04:41 +0200
+
 isco (2.5-8) unstable; urgency=low
 
   * update for newer versions of dependencies.
