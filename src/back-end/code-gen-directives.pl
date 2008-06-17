@@ -1,7 +1,7 @@
 % $Id$
 
 % -----------------------------------------------------------------------------
-%  ISCO is Copyright (C) 1998-2001 Salvador Abreu
+%  ISCO is Copyright (C) 1998-2008 Salvador Abreu
 %  
 %     This program is free software; you can redistribute it and/or
 %     modify it under the terms of the GNU General Public License as
@@ -65,7 +65,10 @@ isco_prolog_specials([_|Ss]) :- isco_prolog_specials(Ss).
 % -----------------------------------------------------------------------------
 
 % $Log$
-% Revision 1.5  2008/06/17 13:12:12  spa
+% Revision 1.6  2008/06/17 13:16:03  spa
+% *** empty log message ***
+%
+% Revision 1.5  2008-06-17 13:12:12  spa
 % have default connection be context-sensitive
 %
 % Revision 1.4  2008-06-17 11:42:44  spa
