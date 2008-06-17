@@ -41,7 +41,7 @@ PREFIX = @prefix@
 LIBDIR = $(PREFIX)/lib/$(PROG)
 DESTDIR = $(PREFIX)/bin
 
-PLX = $(subst ../debian/tmp,,$(PREFIX))/lib/$(PROLOG)/ext
+PLX = $(subst ../debian/$(PROG),,$(PREFIX))/lib/$(PROLOG)/ext
 
 PLFILES = \
 	revision.pl \
@@ -160,8 +160,8 @@ $(PROGSHELL): $(SHELL_OBJECTS) $(DB)
 		$(SHELL_FLAGS) \
 		$(DB) $(LIBDB)
 
-isco_lib_dir.pl:
-	echo "isco_lib_directory('$(subst ../debian/tmp,,$(LIBDIR))')." > $@
+isco_lib_dir.pl::
+	echo "isco_lib_directory('$(subst ../debian/$(PROG),,$(LIBDIR))')." > $@
 
 revision.pl: revision.pl.in ../debian/changelog
 	sed -e "s;@REVISION@;`head -1 ../debian/changelog | sed -e 's;.*(;;' -e 's;).*;;'`;" < $< > $@
@@ -199,6 +199,10 @@ revision.pl: revision.pl.in ../debian/changelog
 
 
 # $Log$
+# Revision 1.14  2008/06/17 10:32:46  spa
+# revive!!
+# CVS is now on host.di.uevora.pt
+#
 # Revision 1.13  2005/06/07 14:16:57  spa
 # include transaction.pl and .o
 #

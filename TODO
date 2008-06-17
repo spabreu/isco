@@ -7,6 +7,10 @@ currently causes false fields to be added to original class!!!
 ** Queries within setof/bagof
 unused variables show up in rewritten goal: use another approach,
 such as having a special term to indicate an unused column.
+** oid attributes as foreign keys
+it forgets to create the ok_CLASS_oid () function
+** oids can't be referenced as foreign keys, for postgresql anyway...
+** cyclic foreign keys
 
 * ISCO language
 ** Generate strings instead of atoms, whenever possible
@@ -58,6 +62,7 @@ Use CxLP!
 *** ODBC/psql 7
 *** ODBC/oracle
 *** native psql 7
+*** native psql 8
 *** LDAP
 *** SNMP
 *** DNS

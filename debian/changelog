@@ -1,3 +1,10 @@
+isco (2.5-8) unstable; urgency=low
+
+  * update for newer versions of dependencies.
+  * src/Makefile.in: always rebuild isco_lib_dir.pl
+
+ -- Salvador Abreu <spa@debian-32.local>  Thu, 05 Jun 2008 13:32:04 +0200
+
 isco (2.5-7) unstable; urgency=low
 
   * compile for amd64.
