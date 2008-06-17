@@ -27,6 +27,9 @@
 :- unit(directives(ST)).
 
 emit :-
+	( g_read(isco_cx_unit, UNIT),
+	  UNIT = 0 -> true ;
+	  format(':- unit(~q).~n~n', [UNIT]) ),
 	isco_lib_directory(D),
 	isco_revision(REV),
 	format(':- initialization(isco_check_revision(~q)).~n', [REV]),
@@ -56,6 +59,9 @@ isco_prolog_specials([_|Ss]) :- isco_prolog_specials(Ss).
 % -----------------------------------------------------------------------------
 
 % $Log$
+% Revision 1.4  2008/06/17 11:42:44  spa
+% emit :-unit declarations.
+%
 % Revision 1.3  2003/03/12 19:06:06  spa
 % Simplified unit name...
 %
