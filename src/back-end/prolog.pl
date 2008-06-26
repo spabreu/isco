@@ -149,7 +149,9 @@ isco_prolog_computed_class_prefix([rule(select,HEAD,_)|_], CNAME) :-
 	HEAD0 =.. [PNAME | ARGS0],
 	append(ARGS0, [_], ARGS),		% add fake ORDER+MASK
 	BODY =.. [PNAME, OID, CNAME | ARGS],
-	portray_clause((HEAD0 :- BODY)), nl.
+	portray_clause((HEAD0 :- BODY)), nl,
+	HEAD1 =.. [PNAME, OID, CNAME | ARGS0],	% add simple clause (no O+MASK)
+	portray_clause((HEAD1 :- BODY)), nl.
 isco_prolog_computed_class_prefix(_, _).
 
 
@@ -747,7 +749,10 @@ isco_prolog_sequence(NAME, ATTRs) :-
 % -----------------------------------------------------------------------------
 
 % $Log$
-% Revision 1.22  2008/06/17 13:11:46  spa
+% Revision 1.23  2008/06/26 11:26:26  spa
+% correct computed class code generation.
+%
+% Revision 1.22  2008-06-17 13:11:46  spa
 % have default connection be context-sensitive
 %
 % Revision 1.21  2004/04/27 12:46:39  spa
