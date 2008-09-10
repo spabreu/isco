@@ -26,11 +26,14 @@
 	(_DATE = "$Date$",
 	 isco_revision(R),
 	 format("ISCO version ~w~n", [R]), 
-	 format("Copyright (C) 1998-2006 Salvador Abreu~n~n", []))).
+	 format("Copyright (C) 1998-2008 Salvador Abreu~n~n", []))).
 
 % -----------------------------------------------------------------------------
 
 % $Log$
+% Revision 1.3  2008/09/10 16:53:02  spa
+% *** empty log message ***
+%
 % Revision 1.2  2006/07/18 07:46:51  spa
 % *** empty log message ***
 %

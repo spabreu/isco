@@ -1,3 +1,10 @@
+isco (2.5-10) unstable; urgency=low
+
+  * src/back-end/prolog.pl: fix computed clause code gen
+  * src/back-end/prolog.pl: fix cg for more than one static external class
+
+ -- Salvador Abreu <spa@debian.org>  Wed, 10 Sep 2008 17:56:42 +0100
+
 isco (2.5-9) unstable; urgency=low
 
   * support multiple schemata in separate units

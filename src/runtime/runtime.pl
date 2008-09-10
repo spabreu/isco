@@ -26,6 +26,8 @@
 
 :- include('ops').
 
+:- discontiguous(isco_local_connection/1).
+
 % -- Link to external connections ---------------------------------------------
 
 isco_default_connection(ISCO_DB_UNAME) :-
@@ -33,8 +35,11 @@ isco_default_connection(ISCO_DB_UNAME) :-
 	atom_concat('isco_db_', UNAME, ISCO_DB_UNAME).
 isco_default_connection(isco_isco).
 
-isco_connection(C) :- isco_local_connection(C), !.
-isco_connection(C) :- isco_connection(isco_isco, C). % default connection
+%isco_connection(C) :- isco_local_connection(C), !.
+%isco_connection(C) :- isco_connection(isco_isco, C). % default connection
+
+isco_connection(C) :- isco_default_connection(ISCO_ISCO),
+		      isco_connection(ISCO_ISCO, C). % default connection
 
 isco_connection(ID, C) :- g_read(ID, C), C \= 0, !.
 isco_connection(ID, C) :-
@@ -786,7 +791,10 @@ isco_tsort_level(M, PX, N, X) :-
 % -----------------------------------------------------------------------------
 
 % $Log$
-% Revision 1.21  2008/06/17 13:10:18  spa
+% Revision 1.22  2008/09/10 16:55:44  spa
+% *** empty log message ***
+%
+% Revision 1.21  2008-06-17 13:10:18  spa
 % have default connection be context-sensitive
 %
 % Revision 1.20  2005/05/07 15:25:42  spa

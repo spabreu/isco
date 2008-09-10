@@ -80,7 +80,7 @@ isco_prolog_class(CNAME, NET) :-		% external DB classes
 	lookup(NET, fields, fields=Fs),
 	!,
 	isco_nondupe_fields(Fs, FF),
-	ol_length(FF, NFs),
+	ol_length(FF, NFs), !,
 	isco_prolog_class_header(external, CNAME, NET),
 	( lookup(ST, external(XID), external(_)=XDEF) ->
 	    atom_concat('isco_', XID, ISCO_XID),
@@ -394,7 +394,7 @@ isco_prolog_code_insert(CNAME, NET, NFs, Fs) :-
 	nl,
 	portray_clause((HEAD :- BODY1)), nl,
 	portray_clause((HEAD1 :- BODY)), nl.
-isco_prolog_code_insert(_, _, _, _, _).
+isco_prolog_code_insert(_, _, _, _).
 
 
 
@@ -749,7 +749,10 @@ isco_prolog_sequence(NAME, ATTRs) :-
 % -----------------------------------------------------------------------------
 
 % $Log$
-% Revision 1.23  2008/06/26 11:26:26  spa
+% Revision 1.24  2008/09/10 16:54:57  spa
+% *** empty log message ***
+%
+% Revision 1.23  2008-06-26 11:26:26  spa
 % correct computed class code generation.
 %
 % Revision 1.22  2008-06-17 13:11:46  spa
