@@ -53,6 +53,9 @@ ol_member(_,  L) :- var(L), !, fail.
 ol_member(X, [X|_]).
 ol_member(X, [_|L]) :- ol_member(X, L).
 
+ol_append(X, Y) :- var(X), !, X=Y.
+ol_append([_|X], Y) :- ol_append(X, Y).
+
 ol_length(L, N) :- ol_length(L, 0, N).
 
     ol_length(L, N, N) :- var(L), !.
